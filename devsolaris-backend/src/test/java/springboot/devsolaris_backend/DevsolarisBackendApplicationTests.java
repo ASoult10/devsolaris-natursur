@@ -1,4 +1,4 @@
-package java.springboot.devsolaris_backend;
+package springboot.devsolaris_backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
