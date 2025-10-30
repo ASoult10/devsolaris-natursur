@@ -1,4 +1,4 @@
-package java.springboot.devsolaris_backend;
+package springboot.devsolaris_backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
