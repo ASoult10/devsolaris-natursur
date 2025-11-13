@@ -16,6 +16,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Intege
     
     List<Appointment> findByUserIdOrderByStartTimeAsc(Integer userId);
     
+    List<Appointment> findAllByOrderByStartTimeAsc();
+    
+    List<Appointment> findByStartTimeBetweenOrderByStartTimeAsc(LocalDateTime startDate, LocalDateTime endDate);
+    
+    List<Appointment> findByStartTimeGreaterThanEqualOrderByStartTimeAsc(LocalDateTime startDate);
+    
+    List<Appointment> findByStartTimeLessThanEqualOrderByStartTimeAsc(LocalDateTime endDate);
+    
     @Query("SELECT a FROM Appointment a WHERE " +
            "(a.startTime < :endTime AND a.endTime > :startTime)")
     List<Appointment> findOverlappingAppointments(

@@ -94,6 +94,34 @@ public class AppointmentService {
         return convertToResponse(appointment);
     }
 
+    public List<AppointmentResponse> getAllAppointments(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
+        List<Appointment> appointments;
+
+        // Validar que si se proporcionan ambas fechas, startDate sea anterior a endDate
+        if (startDate != null && endDate != null && !startDate.isBefore(endDate)) {
+            throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
+        }
+
+        // Filtrar según los parámetros proporcionados
+        if (startDate != null && endDate != null) {
+            // Ambas fechas: buscar citas en el intervalo
+            appointments = appointmentRepository.findByStartTimeBetweenOrderByStartTimeAsc(startDate, endDate);
+        } else if (startDate != null) {
+            // Solo fecha inicio: buscar citas después de esta fecha
+            appointments = appointmentRepository.findByStartTimeGreaterThanEqualOrderByStartTimeAsc(startDate);
+        } else if (endDate != null) {
+            // Solo fecha fin: buscar citas antes de esta fecha
+            appointments = appointmentRepository.findByStartTimeLessThanEqualOrderByStartTimeAsc(endDate);
+        } else {
+            // Sin filtros: obtener todas las citas
+            appointments = appointmentRepository.findAllByOrderByStartTimeAsc();
+        }
+
+        return appointments.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
     private void validateAppointmentTimes(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime, Integer excludeAppointmentId) {
         // Validar que la fecha de inicio es anterior a la fecha de fin
         if (!startTime.isBefore(endTime)) {

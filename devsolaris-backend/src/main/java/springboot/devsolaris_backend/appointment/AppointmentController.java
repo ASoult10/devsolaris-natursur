@@ -2,12 +2,14 @@ package springboot.devsolaris_backend.appointment;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import springboot.devsolaris_backend.appointment.dto.AppointmentRequest;
 import springboot.devsolaris_backend.appointment.dto.AppointmentResponse;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,28 @@ public class AppointmentController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al obtener la cita: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Obtener todas las citas con filtros opcionales de fecha
+     * GET /api/appointments
+     * GET /api/appointments?startDate=2024-02-01T00:00:00
+     * GET /api/appointments?endDate=2024-02-28T23:59:59
+     * GET /api/appointments?startDate=2024-02-01T00:00:00&endDate=2024-02-28T23:59:59
+     */
+    @GetMapping
+    public ResponseEntity<?> getAllAppointments(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        try {
+            List<AppointmentResponse> appointments = appointmentService.getAllAppointments(startDate, endDate);
+            return ResponseEntity.ok(appointments);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Error al obtener las citas: " + e.getMessage()));
         }
     }
 
