@@ -1,4 +1,3 @@
-
 package springboot.devsolaris_backend.baseEntity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,8 +7,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.SequenceGenerator;
+import lombok.Getter;
+import lombok.Setter;
 
 @MappedSuperclass
+@Getter
+@Setter
 public class BaseEntity {
 
 	@Id
@@ -18,14 +21,6 @@ public class BaseEntity {
         initialValue = 100)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE	, generator = "entity_seq")
 	protected Integer id;
-
-	public Integer getId() {
-		return id;
-	}
-
-	public void setId(Integer id) {
-		this.id = id;
-	}
 
 	@JsonIgnore
 	public boolean isNew() {
