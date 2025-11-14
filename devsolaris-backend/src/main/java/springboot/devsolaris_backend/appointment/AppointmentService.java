@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import springboot.devsolaris_backend.appointment.dto.AppointmentRequest;
 import springboot.devsolaris_backend.appointment.dto.AppointmentResponse;
+import springboot.devsolaris_backend.auth.AuthenticationUtil;
 import springboot.devsolaris_backend.user.User;
 import springboot.devsolaris_backend.user.UserRepository;
 
@@ -27,6 +28,9 @@ public class AppointmentService {
     private UserRepository userRepository;
 
     public AppointmentResponse createAppointment(AppointmentRequest request) {
+        // Validar que el usuario puede crear citas para el userId especificado
+        validateAppointmentUserAccess(request.getUserId());
+        
         // Validar que el usuario existe
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + request.getUserId()));
@@ -47,6 +51,9 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getAppointmentsByUserId(Integer userId) {
+        // Validar que el usuario puede ver las citas de este usuario
+        validateAppointmentUserAccess(userId);
+        
         // Validar que el usuario existe
         if (!userRepository.existsById(userId)) {
             throw new IllegalArgumentException("Usuario no encontrado con ID: " + userId);
@@ -62,10 +69,12 @@ public class AppointmentService {
         // Buscar la cita existente
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
-
-        // Validar que el usuario existe si se está cambiando
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + request.getUserId()));
+        
+        // Validar que el usuario puede modificar esta cita
+        validateAppointmentAccess(appointment);
+        
+        // Validar que el usuario puede crear citas para el nuevo userId
+        validateAppointmentUserAccess(request.getUserId());
 
         // Validar las fechas (excluyendo esta cita de la validación de solapamiento)
         validateAppointmentTimes(request.getStartTime(), request.getEndTime(), appointmentId);
@@ -82,19 +91,31 @@ public class AppointmentService {
     }
 
     public void deleteAppointment(Integer appointmentId) {
-        if (!appointmentRepository.existsById(appointmentId)) {
-            throw new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId);
-        }
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
+        
+        // Validar que el usuario puede eliminar esta cita
+        validateAppointmentAccess(appointment);
+        
         appointmentRepository.deleteById(appointmentId);
     }
 
     public AppointmentResponse getAppointmentById(Integer appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
+        
+        // Validar que el usuario puede ver esta cita
+        validateAppointmentAccess(appointment);
+        
         return convertToResponse(appointment);
     }
 
     public List<AppointmentResponse> getAllAppointments(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
+        // Solo ADMIN puede ver todas las citas
+        if (!AuthenticationUtil.isAdmin()) {
+            throw new IllegalArgumentException("No tienes permisos para ver todas las citas. Solo administradores pueden acceder.");
+        }
+        
         List<Appointment> appointments;
 
         // Validar que si se proporcionan ambas fechas, startDate sea anterior a endDate
@@ -176,5 +197,39 @@ public class AppointmentService {
                 appointment.getTitle(),
                 appointment.getDescription()
         );
+    }
+
+    /**
+     * Valida que el usuario actual sea ADMIN o el propietario de la cita
+     * @param appointment Cita a validar
+     * @return true si tiene acceso
+     * @throws IllegalArgumentException si no tiene acceso
+     */
+    private boolean validateAppointmentAccess(Appointment appointment) {
+        Integer currentUserId = AuthenticationUtil.getCurrentUserId();
+        boolean isAdmin = AuthenticationUtil.isAdmin();
+        
+        if (!isAdmin && !currentUserId.equals(appointment.getUser().getId())) {
+            throw new IllegalArgumentException("No tienes permisos para acceder a esta cita. Solo puedes acceder a tus propias citas.");
+        }
+        
+        return true;
+    }
+
+    /**
+     * Valida que el usuario actual sea ADMIN o esté creando/modificando su propia cita
+     * @param userId ID del usuario de la cita
+     * @return true si tiene acceso
+     * @throws IllegalArgumentException si no tiene acceso
+     */
+    private boolean validateAppointmentUserAccess(Integer userId) {
+        Integer currentUserId = AuthenticationUtil.getCurrentUserId();
+        boolean isAdmin = AuthenticationUtil.isAdmin();
+        
+        if (!isAdmin && !currentUserId.equals(userId)) {
+            throw new IllegalArgumentException("No tienes permisos para crear o modificar citas de otros usuarios. Solo puedes gestionar tus propias citas.");
+        }
+        
+        return true;
     }
 }
