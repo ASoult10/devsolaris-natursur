@@ -10,6 +10,7 @@ import springboot.devsolaris_backend.user.User;
 import springboot.devsolaris_backend.user.UserRepository;
 
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -96,7 +97,7 @@ public class AppointmentService {
         return convertToResponse(appointment);
     }
 
-    public List<AppointmentResponse> getAllAppointments(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
+    public List<AppointmentResponse> getAllAppointments(LocalDateTime startDate, LocalDateTime endDate) {
         if (!AuthenticationUtil.isAdmin()) {
             throw new IllegalArgumentException("No tienes permisos para ver todas las citas. Solo administradores pueden acceder.");
         }
@@ -122,7 +123,7 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
-    private void validateAppointmentTimes(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime, Integer excludeAppointmentId) {
+    private void validateAppointmentTimes(LocalDateTime startTime, LocalDateTime endTime, Integer excludeAppointmentId) {
         if (!startTime.isBefore(endTime)) {
             throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
         }
