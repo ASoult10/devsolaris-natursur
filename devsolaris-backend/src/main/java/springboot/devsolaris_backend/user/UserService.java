@@ -41,7 +41,6 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario con ID " + id + " no encontrado"));
         
-        // Verificar si el email ya existe para otro usuario
         if (!user.getEmail().equals(userDetails.getEmail()) && 
             userRepository.existsByEmail(userDetails.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
@@ -74,12 +73,6 @@ public class UserService {
         }
     }
 
-    /**
-     * Valida que el usuario actual sea ADMIN o el mismo usuario
-     * @param userId ID del usuario a acceder
-     * @return true si tiene acceso
-     * @throws IllegalArgumentException si no tiene acceso
-     */
     private boolean validateUserAccess(Integer userId) {
         Integer currentUserId = AuthenticationUtil.getCurrentUserId();
         boolean isAdmin = AuthenticationUtil.isAdmin();

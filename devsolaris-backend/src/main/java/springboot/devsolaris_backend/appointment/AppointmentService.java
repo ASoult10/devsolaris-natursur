@@ -28,17 +28,13 @@ public class AppointmentService {
     private UserRepository userRepository;
 
     public AppointmentResponse createAppointment(AppointmentRequest request) {
-        // Validar que el usuario puede crear citas para el userId especificado
         validateAppointmentUserAccess(request.getUserId());
         
-        // Validar que el usuario existe
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + request.getUserId()));
 
-        // Validar las fechas
         validateAppointmentTimes(request.getStartTime(), request.getEndTime(), null);
 
-        // Crear la cita
         Appointment appointment = new Appointment();
         appointment.setUser(user);
         appointment.setStartTime(request.getStartTime());
@@ -51,10 +47,8 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getAppointmentsByUserId(Integer userId) {
-        // Validar que el usuario puede ver las citas de este usuario
         validateAppointmentUserAccess(userId);
         
-        // Validar que el usuario existe
         if (!userRepository.existsById(userId)) {
             throw new IllegalArgumentException("Usuario no encontrado con ID: " + userId);
         }
@@ -66,21 +60,15 @@ public class AppointmentService {
     }
 
     public AppointmentResponse updateAppointment(Integer appointmentId, AppointmentRequest request) {
-        // Buscar la cita existente
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
         
-        // Validar que el usuario puede modificar esta cita
         validateAppointmentAccess(appointment);
         
-        // Validar que el usuario puede crear citas para el nuevo userId
         validateAppointmentUserAccess(request.getUserId());
 
-        // Validar las fechas (excluyendo esta cita de la validación de solapamiento)
         validateAppointmentTimes(request.getStartTime(), request.getEndTime(), appointmentId);
 
-        // Actualizar la cita
-        appointment.setUser(user);
         appointment.setStartTime(request.getStartTime());
         appointment.setEndTime(request.getEndTime());
         appointment.setTitle(request.getTitle());
@@ -94,7 +82,6 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
         
-        // Validar que el usuario puede eliminar esta cita
         validateAppointmentAccess(appointment);
         
         appointmentRepository.deleteById(appointmentId);
@@ -104,37 +91,29 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Cita no encontrada con ID: " + appointmentId));
         
-        // Validar que el usuario puede ver esta cita
         validateAppointmentAccess(appointment);
         
         return convertToResponse(appointment);
     }
 
     public List<AppointmentResponse> getAllAppointments(java.time.LocalDateTime startDate, java.time.LocalDateTime endDate) {
-        // Solo ADMIN puede ver todas las citas
         if (!AuthenticationUtil.isAdmin()) {
             throw new IllegalArgumentException("No tienes permisos para ver todas las citas. Solo administradores pueden acceder.");
         }
         
         List<Appointment> appointments;
 
-        // Validar que si se proporcionan ambas fechas, startDate sea anterior a endDate
         if (startDate != null && endDate != null && !startDate.isBefore(endDate)) {
             throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
         }
 
-        // Filtrar según los parámetros proporcionados
         if (startDate != null && endDate != null) {
-            // Ambas fechas: buscar citas en el intervalo
             appointments = appointmentRepository.findByStartTimeBetweenOrderByStartTimeAsc(startDate, endDate);
         } else if (startDate != null) {
-            // Solo fecha inicio: buscar citas después de esta fecha
             appointments = appointmentRepository.findByStartTimeGreaterThanEqualOrderByStartTimeAsc(startDate);
         } else if (endDate != null) {
-            // Solo fecha fin: buscar citas antes de esta fecha
             appointments = appointmentRepository.findByStartTimeLessThanEqualOrderByStartTimeAsc(endDate);
         } else {
-            // Sin filtros: obtener todas las citas
             appointments = appointmentRepository.findAllByOrderByStartTimeAsc();
         }
 
@@ -144,23 +123,19 @@ public class AppointmentService {
     }
 
     private void validateAppointmentTimes(java.time.LocalDateTime startTime, java.time.LocalDateTime endTime, Integer excludeAppointmentId) {
-        // Validar que la fecha de inicio es anterior a la fecha de fin
         if (!startTime.isBefore(endTime)) {
             throw new IllegalArgumentException("La fecha de inicio debe ser anterior a la fecha de fin");
         }
 
-        // Validar que son días laborables (lunes a viernes)
         DayOfWeek dayOfWeek = startTime.getDayOfWeek();
         if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
             throw new IllegalArgumentException("Las citas solo pueden crearse de lunes a viernes");
         }
 
-        // Validar que la cita termina el mismo día
         if (!startTime.toLocalDate().equals(endTime.toLocalDate())) {
             throw new IllegalArgumentException("La cita debe comenzar y terminar el mismo día");
         }
 
-        // Validar horario de negocio (8:00 - 15:00)
         LocalTime startLocalTime = startTime.toLocalTime();
         LocalTime endLocalTime = endTime.toLocalTime();
 
@@ -172,7 +147,6 @@ public class AppointmentService {
             throw new IllegalArgumentException("Las citas no pueden terminar después de las 15:00");
         }
 
-        // Validar que no haya solapamiento con otras citas
         List<Appointment> overlappingAppointments;
         if (excludeAppointmentId != null) {
             overlappingAppointments = appointmentRepository.findOverlappingAppointmentsExcludingId(
@@ -199,12 +173,6 @@ public class AppointmentService {
         );
     }
 
-    /**
-     * Valida que el usuario actual sea ADMIN o el propietario de la cita
-     * @param appointment Cita a validar
-     * @return true si tiene acceso
-     * @throws IllegalArgumentException si no tiene acceso
-     */
     private boolean validateAppointmentAccess(Appointment appointment) {
         Integer currentUserId = AuthenticationUtil.getCurrentUserId();
         boolean isAdmin = AuthenticationUtil.isAdmin();
@@ -216,12 +184,6 @@ public class AppointmentService {
         return true;
     }
 
-    /**
-     * Valida que el usuario actual sea ADMIN o esté creando/modificando su propia cita
-     * @param userId ID del usuario de la cita
-     * @return true si tiene acceso
-     * @throws IllegalArgumentException si no tiene acceso
-     */
     private boolean validateAppointmentUserAccess(Integer userId) {
         Integer currentUserId = AuthenticationUtil.getCurrentUserId();
         boolean isAdmin = AuthenticationUtil.isAdmin();
