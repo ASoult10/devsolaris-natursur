@@ -1,0 +1,484 @@
+:root {
+  --color-acento: #3d8c70;
+  --color-acento-light: #75b497;
+  --color-fondo: #ffffff;
+  --color-seccion: #f5f9f6;
+  --color-cards: #ffffff;
+  --color-borde: #dcdcdc;
+  --color-texto: #2e2e2e;
+  --color-texto-muted: #777777;
+  --teal: #0a9aa2;
+  --teal-dark: #087e85;
+  --teal-text: #0a8f97;
+  --transition: 0.2s ease;
+}
+
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ========================
+   Header / Navbar
+======================== */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.25s ease;
+}
+.navbar.hidden { transform: translateY(-100%); }
+
+.navbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 24px;
+}
+
+.brand-logo img {
+  height: 64px;
+  width: auto;
+}
+
+.nav-links {
+  justify-self: center;
+  display: flex;
+  gap: 32px;
+}
+
+.nav-links a {
+  color: var(--teal-text);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  transition: color var(--transition);
+}
+.nav-links a:hover { color: var(--teal-dark); }
+
+.btn.cta {
+  justify-self: end;
+  background: var(--teal);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background var(--transition), transform 0.1s;
+}
+.btn.cta:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+}
+
+.profile-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  border: none;
+  transition: background var(--transition);
+}
+.profile-btn:hover { background: var(--teal-dark); }
+
+/* ========================
+   Hero
+======================== */
+.hero {
+  padding: 80px 0;
+  background: var(--color-seccion);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hero-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+}
+
+.hero-content {
+  flex: 1;
+  min-width: 280px;
+}
+
+.hero-content h2 {
+  font-size: 36px;
+  margin-bottom: 20px;
+  color: var(--color-acento);
+}
+
+.hero-content p {
+  font-size: 18px;
+  margin-bottom: 30px;
+  color: var(--color-texto-muted);
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 16px;
+}
+
+.hero-ctas .btn.link {
+  background: transparent;
+  color: var(--teal);
+  border: 2px solid var(--teal);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  transition: all var(--transition);
+}
+.hero-ctas .btn.link:hover {
+  background: var(--teal);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.hero-image {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  justify-content: center;
+}
+.hero-image .placeholder-image {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: var(--color-acento-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+}
+
+.section-dark {
+  background: #085b51;
+  color: #fff;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.section-dark h3 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.section-dark p {
+  font-size: 18px;
+  line-height: 1.8;
+  max-width: 800px;
+  margin: 0 auto;
+  color: #f0f0f0;
+}
+
+
+/* ========================
+   Sobre mí / About
+======================== */
+.about-wrapper {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding: 80px 0;
+  background: var(--color-fondo);
+}
+
+.about-text {
+  flex: 1;
+  min-width: 280px;
+}
+
+.about-text h3 {
+  font-size: 30px;
+  margin-bottom: 16px;
+  color: var(--color-acento);
+}
+
+.about-text p {
+  margin-bottom: 16px;
+  color: var(--color-texto-muted);
+}
+
+.about-photo {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.photo-placeholder {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: var(--color-acento-light);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* ========================
+   Contacto
+======================== */
+.contact-wrapper {
+  padding: 80px 0;
+  background: var(--color-seccion);
+  text-align: center;
+}
+
+.contact-wrapper h3 {
+  font-size: 30px;
+  margin-bottom: 24px;
+  color: var(--color-acento);
+}
+
+.contact-wrapper p {
+  margin: 8px 0;
+  font-size: 18px;
+  color: var(--color-texto-muted);
+}
+
+.contact-wrapper a.btn {
+  margin-top: 20px;
+  display: inline-block;
+  background: var(--teal);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--transition), transform 0.1s;
+}
+.contact-wrapper a.btn:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+}
+
+/* ========================
+   Services
+======================== */
+
+.section-title {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 40px;
+  color: var(--color-acento);
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  justify-items: center;
+}
+
+.service-card {
+  background: var(--color-cards);
+  border: 1px solid var(--color-borde);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  width: 100%;
+  max-width: 280px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+}
+
+.service-card h4 {
+  color: var(--color-acento);
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+.service-card p {
+  flex: 1;
+  color: var(--color-texto-muted);
+  margin-bottom: 16px;
+}
+
+.service-btn {
+  background: var(--color-acento);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transition), transform 0.1s;
+}
+
+.service-btn:hover {
+  background: var(--color-acento-light);
+  transform: translateY(-2px);
+}
+
+
+/* ========================
+   Opiniones estilo Google
+======================== */
+.testimonials-list { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;}
+.testimonial { flex: 1; min-width: 260px; max-width: 320px; background: #fff; border: 1px solid var(--color-borde); border-radius: 12px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 12px;}
+.testimonial p { font-size: 15px; color: var(--color-texto);}
+.testimonial footer { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--color-texto-muted);}
+.testimonial footer small { font-size: 12px; color: #999; }
+
+/* ========================
+   Booking / Calendario
+======================== */
+.booking-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  align-items: start;
+}
+
+.calendar-card .card-header,
+.slots-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--color-acento);
+}
+
+.calendar {
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--color-cards);
+}
+
+.weekdays, .week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.weekdays { margin-bottom: 8px; }
+.week { gap: 4px; margin-bottom: 4px; }
+
+.day {
+  position: relative;
+  padding: 10px;
+  height: 60px;
+  border-radius: 8px;
+  background: var(--color-seccion);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.day:hover:not(.day-disabled) {
+  background: var(--color-acento-light);
+  border-color: var(--color-acento);
+}
+
+.day-number { font-weight: 600; color: var(--color-texto); }
+.day-outmonth { opacity: 0.5; }
+.day-disabled { color: #bbb; text-decoration: line-through; cursor: default; }
+.day-today { box-shadow: 0 0 0 2px var(--color-acento); }
+.day-selected { background: var(--color-acento); color: #fff; }
+.day-overlay { position: absolute; top: 4px; right: 4px; font-size: 12px; color: #c33; }
+
+.slots-card .card-body { display: flex; flex-direction: column; gap: 16px; }
+.select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+}
+.slot-btn {
+  background: var(--color-cards);
+  border: 1px solid var(--color-borde);
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.slot-btn:hover {
+  transform: scale(1.02);
+  background: var(--color-acento-light);
+  color: white;
+}
+
+/* ========================
+   Modal Auth
+======================== */
+.modal-backdrop {
+  background: rgba(0,0,0,0.4);
+}
+.modal {
+  width: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.modal-header {
+  background: var(--color-acento);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+.modal-body { padding: 24px; background: var(--color-cards); }
+.modal-body input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal-actions .ghost { background: transparent; border: 1px solid white; color: white; }
+
+/* ========================
+   Responsive
+======================== */
+@media (max-width: 900px) {
+  .navbar-inner { grid-template-columns: 1fr auto; row-gap: 12px; }
+  .nav-links { display: none; }
+  .hero-inner { flex-direction: column; }
+  .about-wrapper { flex-direction: column; }
+  .booking-grid { grid-template-columns: 1fr; }
+}
