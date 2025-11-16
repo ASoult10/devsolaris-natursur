@@ -1,8 +1,14 @@
 import React from 'react';
+import image from '../resources/aboutMe.jpg';
 
 export default function AboutMe() {
   return (
     <div className="container about-wrapper">
+      <div className="about-photo">
+        <div className="photo-placeholder">
+          <img src={image} alt="Fernando" />
+        </div>
+      </div>
       <div className="about-text">
         <h3>Sobre mí</h3>
         <p>
@@ -17,10 +23,6 @@ export default function AboutMe() {
         </p>
       </div>
 
-      <div className="about-photo">
-        <div className="photo-placeholder">FOTO</div>
-        {/* Puedes reemplazar por: <img src="/ruta/foto.jpg" alt="Fernando Escalona" /> */}
-      </div>
     </div>
   );
 }

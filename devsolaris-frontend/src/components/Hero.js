@@ -1,4 +1,6 @@
 import React from 'react';
+import image from '../resources/masaje.jpg';
+
 
 export default function Hero({ onReserveClick }) {
   return (
@@ -13,7 +15,9 @@ export default function Hero({ onReserveClick }) {
             </div>
           </div>
           <div className="hero-image">
-            <div className="placeholder-image">Imagen</div>
+            <div className="placeholder-image">
+              <img src={image} alt="Masaje Holístico" />
+            </div>
           </div>
         </div>
       </section>
