@@ -10,7 +10,7 @@ export default function Testimonials() {
   return (
     <section className="section testimonials">
       <div className="container">
-        <h3>Opiniones de nuestros clientes</h3>
+        <h3 className="section-title">Opiniones de nuestros clientes</h3>
         <div className="testimonials-list">
           {TESTIMONIOS.map((t, i) => (
             <blockquote key={i} className="testimonial">

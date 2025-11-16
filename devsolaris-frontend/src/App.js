@@ -77,13 +77,6 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="container">
-          <p>Av. Santa Lucía, 62 · 41500 Alcalá de Guadaíra — +34 691 355 682</p>
-          <p>Copyright © 2025. Todos los derechos reservados.</p>
-        </div>
-      </footer>
-
       <AuthModal 
         open={authOpen} 
         onClose={() => setAuthOpen(false)} 

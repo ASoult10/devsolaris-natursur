@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AuthModal from './AuthModal';
+import logo from '../resources/logo.png';
 
 export default function Header() {
   const [hidden, setHidden] = useState(false);
@@ -21,21 +22,25 @@ export default function Header() {
     <>
       <header className={`navbar ${hidden ? 'hidden' : ''}`}>
         <div className="navbar-inner">
+
           <a className="brand-logo" href="#inicio" aria-label="Natursur">
-            <img src="/logo-natursur.png" alt="Natursur" />
+            <img src={logo} alt="Natursur" />
           </a>
 
-          <nav className="nav-links" aria-label="primary">
-            <a href="#inicio">INICIO</a>
-            <a href="#servicios">SERVICIOS</a>
-            <a href="#contacto">CONTACTO</a>
-            <a href="https://natursur.herbalife.com/es-es/u" target="_blank" rel="noopener noreferrer">TIENDA</a>
-          </nav>
+          <div className="nav-right">
+            <nav className="nav-links" aria-label="primary">
+              <a href="#inicio">INICIO</a>
+              <a href="#servicios">SERVICIOS</a>
+              <a href="#contacto">CONTACTO</a>
+              <a href="https://natursur.herbalife.com/es-es/u" target="_blank" rel="noopener noreferrer">TIENDA</a>
+            </nav>
 
-          <div style={{ display: 'flex', gap: '12px', justifySelf: 'end', alignItems: 'center' }}>
-            <a className="btn cta" href="#contacto">RESERVA TU CITA</a>
-            <button className="profile-btn" onClick={() => setAuthOpen(true)}>👤</button>
+            <div className="nav-actions">
+              <a className="btn cta" href="#contacto">RESERVA TU CITA</a>
+              <button className="profile-btn" onClick={() => setAuthOpen(true)}>👤</button>
+            </div>
           </div>
+
         </div>
       </header>
 
