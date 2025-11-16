@@ -25,17 +25,20 @@ import jakarta.validation.Valid;
 public class UserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     /**
-     * Obtener todos los usuarios
+     * Obtener todos los usuarios (solo ADMIN)
      * GET /api/users
      */
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
         try {
-            List<User> users = userRepository.findAll();
+            List<User> users = userService.getAllUsers();
             return ResponseEntity.ok(users);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al obtener los usuarios: " + e.getMessage()));
@@ -43,16 +46,17 @@ public class UserController {
     }
 
     /**
-     * Obtener un usuario por ID
+     * Obtener un usuario por ID (ADMIN o el mismo usuario)
      * GET /api/users/{id}
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Integer id) {
         try {
-            return userRepository.findById(id)
-                    .map(user -> ResponseEntity.ok((Object) user))
-                    .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(createErrorResponse("Usuario con ID " + id + " no encontrado")));
+            User user = userService.getUserById(id);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al obtener el usuario: " + e.getMessage()));
@@ -60,20 +64,17 @@ public class UserController {
     }
 
     /**
-     * Crear un nuevo usuario
+     * Crear un nuevo usuario (solo ADMIN)
      * POST /api/users
      */
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody User user) {
         try {
-            // Verificar si el email ya existe
-            if (userRepository.existsByEmail(user.getEmail())) {
-                return ResponseEntity.badRequest()
-                        .body(createErrorResponse("El email ya está registrado"));
-            }
-            
-            User savedUser = userRepository.save(user);
+            User savedUser = userService.createUser(user);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al crear el usuario: " + e.getMessage()));
@@ -81,28 +82,17 @@ public class UserController {
     }
 
     /**
-     * Actualizar un usuario existente
+     * Actualizar un usuario existente (ADMIN o el mismo usuario)
      * PUT /api/users/{id}
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Integer id, @Valid @RequestBody User userDetails) {
         try {
-            return userRepository.findById(id)
-                    .map(user -> {
-                        // Verificar si el email ya existe para otro usuario
-                        if (!user.getEmail().equals(userDetails.getEmail()) && 
-                            userRepository.existsByEmail(userDetails.getEmail())) {
-                            return ResponseEntity.badRequest()
-                                    .body((Object) createErrorResponse("El email ya está registrado"));
-                        }
-                        
-                        user.setName(userDetails.getName());
-                        user.setEmail(userDetails.getEmail());
-                        user.setPhone(userDetails.getPhone());
-                        return ResponseEntity.ok((Object) userRepository.save(user));
-                    })
-                    .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(createErrorResponse("Usuario con ID " + id + " no encontrado")));
+            User updatedUser = userService.updateUser(id, userDetails);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al actualizar el usuario: " + e.getMessage()));
@@ -110,21 +100,19 @@ public class UserController {
     }
 
     /**
-     * Eliminar un usuario
+     * Eliminar un usuario (ADMIN o el mismo usuario)
      * DELETE /api/users/{id}
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
         try {
-            return userRepository.findById(id)
-                    .map(user -> {
-                        userRepository.delete(user);
-                        Map<String, String> response = new HashMap<>();
-                        response.put("message", "Usuario eliminado exitosamente");
-                        return ResponseEntity.ok((Object) response);
-                    })
-                    .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                            .body(createErrorResponse("Usuario con ID " + id + " no encontrado")));
+            userService.deleteUser(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Usuario eliminado exitosamente");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al eliminar el usuario: " + e.getMessage()));
