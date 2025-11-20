@@ -1,9 +1,11 @@
 package springboot.devsolaris_backend.user;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import springboot.devsolaris_backend.auth.AuthenticationUtil;
+import springboot.devsolaris_backend.auth.Role;
 
 import java.util.List;
 
@@ -20,15 +22,29 @@ public class UserService {
     }
 
     public User getUserById(Integer id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new NullPointerException("Usuario con ID " + id + " no encontrado"));
         validateUserAccess(id);
-        return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario con ID " + id + " no encontrado"));
+        return user;
+    }
+    
+    public User getUserByEmail(String email) {
+        User user_found = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NullPointerException("Usuario con email " + email + " no encontrado"));
+        validateUserAccess(user_found.getId());
+        return user_found;
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 
     public User createUser(User user) {
-        validateAdminAccess();
+        if(user.getRole() == Role.ADMIN) {
+            validateAdminAccess();
+        }
         
-        if (userRepository.existsByEmail(user.getEmail())) {
+        if (existsByEmail(user.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
         
@@ -42,7 +58,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario con ID " + id + " no encontrado"));
         
         if (!user.getEmail().equals(userDetails.getEmail()) && 
-            userRepository.existsByEmail(userDetails.getEmail())) {
+            existsByEmail(userDetails.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
         
@@ -63,10 +79,6 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    /**
-     * Valida que el usuario actual sea ADMIN
-     * @throws IllegalArgumentException si no es ADMIN
-     */
     private void validateAdminAccess() {
         if (!AuthenticationUtil.isAdmin()) {
             throw new IllegalArgumentException("No tienes permisos para realizar esta operación. Solo administradores pueden acceder.");

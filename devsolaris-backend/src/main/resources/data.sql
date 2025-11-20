@@ -1,9 +1,10 @@
 -- Insertar usuarios de ejemplo (password: "password123" para todos)
 -- Password hasheado con BCrypt
+-- Passwords: password123
 INSERT INTO users (id, name, email, phone, password, role) VALUES 
-(100, 'Admin User', 'admin@natursur.com', '612345678', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', 'ADMIN'),
-(101, 'Juan Pérez', 'juan.perez@example.com', '623456789', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', 'CLIENT'),
-(102, 'María García', 'maria.garcia@example.com', '634567890', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', 'CLIENT');
+(100, 'Fernando Escalona', 'admin@natursur.com', '612345678', '$2a$10$uH8kMfVBLl16bWqpk0L/4OWl2uVFIfzI9aVUisHr2yxeeCNwMXB/K', 'ADMIN'),
+(101, 'Juan Pérez', 'juan.perez@example.com', '623456789', '$2a$10$uH8kMfVBLl16bWqpk0L/4OWl2uVFIfzI9aVUisHr2yxeeCNwMXB/K', 'CLIENT'),
+(102, 'María García', 'maria.garcia@example.com', '634567890', '$2a$10$uH8kMfVBLl16bWqpk0L/4OWl2uVFIfzI9aVUisHr2yxeeCNwMXB/K', 'CLIENT');
 
 -- Insertar citas de ejemplo
 INSERT INTO appointments (id, user_id, start_time, end_time, title, description) VALUES 

@@ -8,15 +8,26 @@ public class AuthenticationUtil {
 
     public static User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             throw new IllegalStateException("No hay usuario autenticado");
         }
-        return (User) authentication.getPrincipal();
+        
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof User) {
+            return (User) principal;
+        }
+        
+        throw new IllegalStateException("Principal no es del tipo esperado: " + principal.getClass().getName());
     }
 
     public static boolean isAdmin() {
-        User user = getCurrentUser();
-        return user.getRole() == Role.ADMIN;
+        try {
+            User user = getCurrentUser();
+            return user.getRole() == Role.ADMIN;
+        } catch (IllegalStateException e) {
+            return false;
+        }
     }
 
     public static Integer getCurrentUserId() {
