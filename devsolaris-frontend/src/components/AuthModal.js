@@ -6,19 +6,20 @@ export default function AuthModal({ open, onClose, onLogin }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState(""); // NUEVO CAMPO PARA REGISTRO
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  //URL REAL DEL BACKEND (AJUSTA SI TU PUERTO ES OTRO)
   const API_URL = "http://localhost:8080/api/auth";
 
-  // Limpia los campos SIEMPRE al abrir el modal
+  // Limpia los campos al abrir el modal
   useEffect(() => {
     if (open) {
       setName("");
       setEmail("");
       setPassword("");
+      setPhone(""); // Limpiar teléfono
       setError(null);
     }
   }, [open]);
@@ -38,7 +39,7 @@ export default function AuthModal({ open, onClose, onLogin }) {
       const body =
         mode === "login"
           ? { email, password }
-          : { name, email, password };
+          : { name, email, password, phone }; // enviar teléfono al registrar
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -85,14 +86,26 @@ export default function AuthModal({ open, onClose, onLogin }) {
           {error && <p className="auth-error">{error}</p>}
 
           {mode === "register" && (
-            <label>
-              Nombre
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </label>
+            <>
+              <label>
+                Nombre
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </label>
+
+              <label>
+                Teléfono
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </label>
+            </>
           )}
 
           <label>

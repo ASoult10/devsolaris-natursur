@@ -8,7 +8,6 @@ import Contact from './components/Contact';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
 import { MyAppointments, MyOrders } from './components/UserPanel';
-//import './App.css';
 import './style.css';
 
 export default function App() {
@@ -32,6 +31,8 @@ export default function App() {
     localStorage.removeItem('natursur_user');
   };
 
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
     <div className="app">
       <Header 
@@ -41,58 +42,59 @@ export default function App() {
       />
 
       <main>
-        {/* Hero o saludo si está loggeado */}
-        {user ? (
+
+        {/*Banner de bienvenida para TODOS los usuarios, incluido ADMIN */}
+        {user && (
           <section id="welcome" className="section welcome-section">
             <div className="container">
               <h1 className="section-title">Bienvenid@ {user.name}</h1>
-              <p className="muted">En tu área personal puedes ver tus citas y pedidos.</p>
             </div>
           </section>
+        )}
+
+        {/* ============================== */}
+        {/*        SI ES ADMIN              */}
+        {/* ============================== */}
+        {isAdmin ? (
+          <>
+            <section id="admin-section">
+              <AdminPanel user={user} />
+            </section>
+          </>
         ) : (
-          <Hero 
-            onReserveClick={() => {
-              const el = document.getElementById('booking');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }} 
-          />
+        /* ============================== */
+        /*   SI NO ES ADMIN — WEB NORMAL  */
+        /* ============================== */
+          <>
+            {!user && (
+              <Hero 
+                onReserveClick={() => {
+                  const el = document.getElementById('booking');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }} 
+              />
+            )}
+
+            <section id="sobre-mi" className="section about-section">
+              {user ? <MyAppointments user={user} /> : <AboutMe />}
+            </section>
+
+            <section id="servicios" className="section services-section">
+              {user ? <MyOrders user={user} /> : <Services />}
+            </section>
+
+            <section id="booking" className="section booking-section">
+              <Booking 
+                user={user} 
+                onRequireLogin={() => setAuthOpen(true)} 
+              />
+            </section>
+
+            <section id="contacto" className="section contact-section">
+              <Contact />
+            </section>
+          </>
         )}
-
-        {/* SOBRE MÍ */}
-        <section id="sobre-mi" className="section about-section">
-          {user ? <MyAppointments user={user} /> : <AboutMe />}
-        </section>
-
-        {/* SERVICIOS (o reemplazable por enlaces de usuario en Header) */}
-        <section id="servicios" className="section services-section">
-          {user ? <MyOrders user={user} /> : <Services />}
-        </section>
-
-
-        {/* Testimonials eliminado según petición */}
-
-        {/* RESERVA */}
-        <section id="booking" className="section booking-section">
-          <Booking 
-            user={user} 
-            onRequireLogin={() => setAuthOpen(true)} 
-          />
-        </section>
-
-        {/* CONTACTO (similar al footer de la página original) */}
-        <section id="contacto" className="section contact-section">
-          <Contact />
-        </section>
-
-        {/* ADMIN: solo visible para usuarios ADMIN */}
-        {user && user.role === 'ADMIN' && (
-          <section id="admin-section">
-            <AdminPanel user={user} />
-          </section>
-        )}
-
-        {/* Si además quieres mantener secciones directas para anclaje, las dejamos pero no son necesarias:
-            ya renderizamos MyAppointments/MyOrders en los lugares solicitados. */}
       </main>
 
       <AuthModal

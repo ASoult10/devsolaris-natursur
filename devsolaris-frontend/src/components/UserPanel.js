@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getMyAppointments } from '../api/apiUser'; // tu API existente
+import { getMyAppointments } from '../api/apiUser';
 import { format } from 'date-fns';
 
 function useApi(user) {

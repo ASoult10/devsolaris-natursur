@@ -1,52 +1,61 @@
 import React, { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import '../style.css';
 
-/**
- * AdminPanel
- * - usa user.token para Authorization Bearer
- * - lista/crea/busca/borra usuarios (llama a /api/users y /api/auth/register)
- * - lista/borra citas (llama a /api/appointments)
- * - pedidos: placeholder
- *
- * Referencias backend:
- * - [`springboot.devsolaris_backend.user.UserController`](devsolaris-backend/src/main/java/springboot/devsolaris_backend/user/UserController.java)
- * - [`springboot.devsolaris_backend.appointment.AppointmentController`](devsolaris-backend/src/main/java/springboot/devsolaris_backend/appointment/AppointmentController.java)
- */
+const API_BASE = "http://localhost:8080"; // backend
+function buildUrl(path) {
+  return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;
+}
+function authHeaders(token) {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+async function parseResponse(res) {
+  const text = await res.text();
+  if (!text.trim()) return [];
+  const ct = res.headers.get("content-type")?.toLowerCase() || "";
+  if (!ct.includes("application/json")) {
+    throw { status: res.status, message: "Respuesta no JSON", body: text };
+  }
+  return JSON.parse(text);
+}
 
 function useApi(user) {
   const token = user?.token;
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
   async function get(path) {
-    const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...authHeader } });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    const res = await fetch(buildUrl(path), { headers: { 'Content-Type': 'application/json', ...authHeaders(token) } });
+    return parseResponse(res);
   }
+
   async function post(path, body) {
-    const res = await fetch(path, {
+    const res = await fetch(buildUrl(path), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
       body: JSON.stringify(body)
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return parseResponse(res);
   }
+
   async function del(path) {
-    const res = await fetch(path, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...authHeader } });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json().catch(() => ({}));
+    const res = await fetch(buildUrl(path), { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...authHeaders(token) } });
+    return parseResponse(res).catch(() => ({}));
   }
+
   return { get, post, del };
 }
 
+// --------- COMPONENTE ---------
 export default function AdminPanel({ user }) {
   const [tab, setTab] = useState('users');
   return (
     <section id="admin" className="section admin-section">
       <div className="container">
         <h3 className="section-title">Panel de administrador</h3>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-          <button className={`btn ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Usuarios</button>
-          <button className={`btn ${tab === 'appointments' ? 'active' : ''}`} onClick={() => setTab('appointments')}>Citas</button>
-          <button className={`btn ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>Pedidos</button>
+
+        <div className="admin-tabs">
+          <button className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Usuarios</button>
+          <button className={`admin-tab ${tab === 'appointments' ? 'active' : ''}`} onClick={() => setTab('appointments')}>Citas</button>
+          <button className={`admin-tab ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>Pedidos</button>
         </div>
 
         {tab === 'users' && <AdminUsers user={user} />}
@@ -60,42 +69,36 @@ export default function AdminPanel({ user }) {
 function AdminUsers({ user }) {
   const api = useApi(user);
   const [users, setUsers] = useState([]);
-  const [emailSearch, setEmailSearch] = useState('');
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', phone: '', role: 'CLIENT' });
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-    (async function loadUsers() {
-      try {
-        const data = await api.get('/api/users');
-        if (mounted) setUsers(data);
-      } catch (e) {
-        if (mounted) setError('Error cargando usuarios: ' + e.message);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [api]);
-
-  function filtered() {
-    if (!emailSearch) return users;
-    return users.filter(u => u.email.toLowerCase().includes(emailSearch.toLowerCase()));
+  async function loadUsers() {
+    setError(null);
+    try {
+      const data = await api.get('/api/users');
+      const filtered = data
+        .filter(u => (u.role === 'CLIENT' || u.role === 'ADMIN') && u.id !== user.userId)
+        .sort((a,b) => a.name.localeCompare(b.name));
+      setUsers(filtered);
+    } catch (e) {
+      setError('Error cargando usuarios: ' + (e.message || e));
+      setUsers([]);
+    }
   }
+
+  useEffect(() => { loadUsers(); }, [user?.token]);
 
   async function handleCreate(e) {
     e.preventDefault();
     setError(null);
     try {
-      // Usamos el endpoint de registro para que la contraseña se codifique correctamente en backend
       await api.post('/api/auth/register', newUser);
       setCreating(false);
       setNewUser({ name: '', email: '', password: '', phone: '', role: 'CLIENT' });
-      // recargar lista
-      const data = await api.get('/api/users');
-      setUsers(data);
+      await loadUsers();
     } catch (e) {
-      setError('Error creando usuario: ' + e.message);
+      setError('Error creando usuario: ' + (e.message || e));
     }
   }
 
@@ -103,10 +106,9 @@ function AdminUsers({ user }) {
     if (!window.confirm('Eliminar usuario ' + id + '?')) return;
     try {
       await api.del(`/api/users/${id}`);
-      const data = await api.get('/api/users');
-      setUsers(data);
+      await loadUsers();
     } catch (e) {
-      setError('Error eliminando: ' + e.message);
+      setError('Error eliminando usuario: ' + (e.message || e));
     }
   }
 
@@ -114,10 +116,14 @@ function AdminUsers({ user }) {
     <div>
       {error && <div className="auth-error">{error}</div>}
 
-      <div style={{ marginBottom: 12 }}>
-        <input placeholder="Buscar por email" value={emailSearch} onChange={e => setEmailSearch(e.target.value)} />
-        <button className="btn" onClick={async () => { try { const data = await api.get('/api/users'); setUsers(data); } catch (e) { setError('Error: '+e.message); } }}>Refrescar</button>
-        <button className="btn" onClick={() => setCreating(true)}>Crear usuario</button>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <img
+          src="/crear.png"
+          alt="Crear usuario"
+          style={{ width:32, height:32, cursor:'pointer' }}
+          onClick={() => setCreating(true)}
+        />
+        <span>Crear usuario</span>
       </div>
 
       {creating && (
@@ -127,27 +133,59 @@ function AdminUsers({ user }) {
           <input required type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} />
           <input placeholder="Teléfono" value={newUser.phone} onChange={e => setNewUser({...newUser, phone: e.target.value})} />
           <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
-            <option value="CLIENT">CLIENT</option>
+            <option value="CLIENT">CLIENTE</option>
             <option value="ADMIN">ADMIN</option>
           </select>
-          <div>
-            <button className="btn" type="submit">Crear</button>
-            <button className="btn" type="button" onClick={() => setCreating(false)}>Cancelar</button>
+          <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+            <button className="admin-tab" type="submit">Crear</button>
+            <button className="admin-tab" type="button" onClick={() => setCreating(false)}>Cancelar</button>
           </div>
         </form>
       )}
 
-      <div className="testimonials-list">
-        {filtered().map(u => (
-          <div key={u.id} className="testimonial">
-            <p><strong>{u.name}</strong> — {u.email}</p>
-            <p>Tel: {u.phone} · Rol: {u.role}</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn" onClick={() => navigator.clipboard?.writeText(u.email)}>Copiar email</button>
-              <button className="btn" onClick={() => handleDelete(u.id)}>Eliminar</button>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+        {users.length === 0 ? (
+          <p>No hay usuarios registrados.</p>
+        ) : (
+          users.map(u => (
+            <div
+              key={u.id}
+              className="user-entry"
+              style={{
+                padding: 8,
+                borderRadius: 6,
+                backgroundColor: '#f5f5f5',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <p><strong>{u.name}</strong></p>
+                <p>{u.email}</p>
+                {u.phone && <p>Tel: {u.phone}</p>}
+                <p>Rol: {u.role}</p>
+              </div>
+              <img
+                src="/delete.png"
+                alt="Eliminar"
+                style={{ width: 24, height: 24, cursor: 'pointer' }}
+                onClick={() => handleDelete(u.id)}
+              />
             </div>
-          </div>
-        ))}
+          ))
+        )}
+
+        {/* Botón refrescar alineado a la derecha */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+          <img
+            src="/refresh.png"
+            alt="Refrescar"
+            onClick={loadUsers}
+            style={{ width: 32, height: 32, cursor: 'pointer' }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -158,58 +196,76 @@ function AdminAppointments({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-    (async function load() {
-      try {
-        const data = await api.get('/api/appointments');
-        if (mounted) setAppointments(data);
-      } catch (e) {
-        if (mounted) setError('Error cargando citas: ' + e.message);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [api]);
+  async function loadAppointments() {
+    setError(null);
+    try {
+      const data = await api.get('/api/appointments');
+      const sorted = data.sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
+      setAppointments(sorted);
+    } catch (e) {
+      setError('No se pudieron cargar las citas: ' + (e.message || e));
+      setAppointments([]);
+    }
+  }
+
+  useEffect(() => { loadAppointments(); }, [user?.token]);
 
   async function handleDelete(id) {
-    if (!window.confirm('Eliminar cita ' + id + '?')) return;
+    if (!window.confirm('Eliminar esta cita?')) return;
     try {
       await api.del(`/api/appointments/${id}`);
-      const data = await api.get('/api/appointments');
-      setAppointments(data);
+      await loadAppointments();
     } catch (e) {
-      setError('Error eliminando cita: ' + e.message);
+      setError('Error eliminando cita: ' + (e.message || e));
     }
   }
 
   return (
     <div>
       {error && <div className="auth-error">{error}</div>}
-      <div style={{ marginBottom: 12 }}>
-        <button className="btn" onClick={async () => { try { const data = await api.get('/api/appointments'); setAppointments(data); } catch (e) { setError('Error: '+e.message); } }}>Refrescar citas</button>
-      </div>
 
-      <div className="testimonials-list">
-        {appointments.map(a => (
-          <div key={a.id} className="testimonial">
-            <p><strong>{a.title}</strong> — {a.userName} ({a.userEmail})</p>
-            <p>{a.startTime} → {a.endTime}</p>
-            <p>{a.description}</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn" onClick={() => handleDelete(a.id)}>Eliminar</button>
-            </div>
-          </div>
-        ))}
+      <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:8 }}>
+        {appointments.length === 0 ? (
+          <p>No hay citas registradas.</p>
+        ) : (
+          appointments.map(a => {
+            const formatted = format(new Date(a.startTime), 'HH:mm dd/MM/yyyy');
+            return (
+              <div key={a.id} className="appointment-entry" style={{ padding:8, borderRadius:6, backgroundColor:'#f5f5f5', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div>
+                  <p><strong>{a.title}</strong></p>
+                  <p>{a.userName} ({a.userEmail})</p>
+                </div>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  <span style={{ color:'#555', fontWeight:500 }}>{formatted}</span>
+                  <img
+                    src="/delete.png"
+                    alt="Eliminar cita"
+                    style={{ width:24, height:24, cursor:'pointer' }}
+                    onClick={() => handleDelete(a.id)}
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        <img
+          src="/refresh.png"
+          alt="Refrescar"
+          onClick={loadAppointments}
+          style={{ width:32, height:32, cursor:'pointer', alignSelf:'flex-end', marginTop:4 }}
+        />
       </div>
     </div>
   );
 }
 
+
 function AdminOrders() {
   return (
     <div>
-      <p>Gestión de pedidos: aún no hay endpoints en backend. Aquí puedes integrar tu API de pedidos.</p>
-      <p>TODO: crear endpoints y UI para listar/crear/actualizar/Eliminar pedidos.</p>
+      <p>Gestión de pedidos próximamente...</p>
     </div>
   );
 }
