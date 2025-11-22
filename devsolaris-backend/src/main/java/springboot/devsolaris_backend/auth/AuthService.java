@@ -10,18 +10,20 @@ import springboot.devsolaris_backend.auth.dto.LoginRequest;
 import springboot.devsolaris_backend.auth.dto.RegisterRequest;
 import springboot.devsolaris_backend.user.User;
 import springboot.devsolaris_backend.user.UserRepository;
+import springboot.devsolaris_backend.user.UserService;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userService.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("El email ya está registrado");
         }
 
@@ -33,7 +35,7 @@ public class AuthService {
                 request.getRole() != null ? request.getRole() : Role.CLIENT
         );
 
-        userRepository.save(user);
+        userService.createUser(user);
         var jwtToken = jwtService.generateToken(user);
 
         return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getName(), user.getRole());
@@ -47,8 +49,7 @@ public class AuthService {
                 )
         );
 
-        var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        var user = userRepository.findByEmail(request.getEmail()).get();
 
         var jwtToken = jwtService.generateToken(user);
 

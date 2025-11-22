@@ -46,7 +46,7 @@ public class UserController {
     }
 
     /**
-     * Obtener un usuario por ID (ADMIN o el mismo usuario)
+     * Obtener un usuario por ID
      * GET /api/users/{id}
      */
     @GetMapping("/{id}")
@@ -57,6 +57,9 @@ public class UserController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(createErrorResponse(e.getMessage()));
+        } catch (NullPointerException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Error al obtener el usuario: " + e.getMessage()));
@@ -64,7 +67,28 @@ public class UserController {
     }
 
     /**
-     * Crear un nuevo usuario (solo ADMIN)
+     * Obtener un usuario por email
+     * GET /api/users/email/{email}
+     */
+    @GetMapping("/email/{email}")
+    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
+        try {
+            User user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (NullPointerException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(createErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Error al obtener el usuario: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Crear un nuevo usuario
      * POST /api/users
      */
     @PostMapping
@@ -82,7 +106,7 @@ public class UserController {
     }
 
     /**
-     * Actualizar un usuario existente (ADMIN o el mismo usuario)
+     * Actualizar un usuario existente
      * PUT /api/users/{id}
      */
     @PutMapping("/{id}")
@@ -100,7 +124,7 @@ public class UserController {
     }
 
     /**
-     * Eliminar un usuario (ADMIN o el mismo usuario)
+     * Eliminar un usuario
      * DELETE /api/users/{id}
      */
     @DeleteMapping("/{id}")
