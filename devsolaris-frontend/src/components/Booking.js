@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { getMyAppointments, createMyAppointment } from '../api/apiUser';
+import { getAppointments, getAppointmentsByUser, createAppointment } from '../api/apiUser';
 
-
+/**
+ * Construye ISO-local sin sufijo Z: yyyy-MM-ddTHH:mm:ss
+ * (el backend espera LocalDateTime; evitamos toISOString() que añade Z y puede desplazar la hora)
+ */
 function toLocalIsoNoZone(date) {
   const pad = (n) => String(n).padStart(2, '0');
   const y = date.getFullYear();
@@ -13,14 +16,12 @@ function toLocalIsoNoZone(date) {
   return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
 }
 
-/**
- * Construye franjas horarias de un día
- */
 function buildDaySlots(dateStr, startHour = 8, endHour = 15, slotMinutes = 60) {
   const slots = [];
+  // dateStr in format yyyy-mm-dd (from <input type="date">)
   const [yy, mm, dd] = dateStr.split('-').map(Number);
   for (let h = startHour; h < endHour; h++) {
-    const s = new Date(yy, mm - 1, dd, h, 0, 0);
+    const s = new Date(yy, mm - 1, dd, h, 0, 0, 0);
     const e = new Date(s);
     e.setMinutes(e.getMinutes() + slotMinutes);
     slots.push({
@@ -32,10 +33,8 @@ function buildDaySlots(dateStr, startHour = 8, endHour = 15, slotMinutes = 60) {
   return slots;
 }
 
-/**
- * Comprueba si una franja horaria se solapa con una cita existente
- */
 function overlap(slot, appointment) {
+  // appointment.startTime/endTime expected in ISO-ish without timezone or as ISO (we parse with Date)
   const s1 = new Date(slot.startTime).getTime();
   const e1 = new Date(slot.endTime).getTime();
   const bs = appointment.startTime ? new Date(appointment.startTime).getTime() : 0;
@@ -50,44 +49,54 @@ export default function Booking({ user, onRequireLogin }) {
   const [booked, setBooked] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
-  const [bookingSlot, setBookingSlot] = useState(null);
+  const [cannotFetchAll, setCannotFetchAll] = useState(false);
+  const [bookingSlot, setBookingSlot] = useState(null); // slot being booked (to disable button)
 
   const loadBooked = useCallback(async () => {
-    if (!user) return;
     setMsg(null);
     setLoading(true);
+    setCannotFetchAll(false);
     try {
       const startDate = new Date(date); startDate.setHours(0,0,0,0);
       const endDate = new Date(date); endDate.setHours(23,59,59,999);
-
-      const data = await getMyAppointments(user.id, user.token);
+      const token = user?.token;
+      let data;
+      try {
+        data = await getAppointments({ startDate: toLocalIsoNoZone(startDate), endDate: toLocalIsoNoZone(endDate) }, token);
+      } catch (e) {
+        // fallback to user's own appointments if permission denied (same logic que tenías)
+        if (e && (e.status === 403 || e.status === 401 || (e.message && e.message.toLowerCase().includes('no tienes permisos')))) {
+          setCannotFetchAll(true);
+          data = user?.id ? await getAppointmentsByUser(user.id, token) : [];
+        } else {
+          throw e;
+        }
+      }
       const arr = Array.isArray(data) ? data : [];
       setBooked(arr);
-
-      const allSlots = buildDaySlots(date);
-      const available = allSlots.filter(s => !arr.some(b => overlap(s, b)));
+      const all = buildDaySlots(date);
+      const available = all.filter(s => !arr.some(b => overlap(s, b)));
       setSlots(available);
     } catch (e) {
-      setMsg('Error cargando citas: ' + (e.message || JSON.stringify(e)));
+      setMsg('Error cargando horas: ' + (e.message || (e.body || JSON.stringify(e))));
       setSlots(buildDaySlots(date));
       setBooked([]);
     } finally {
       setLoading(false);
     }
-  }, [date, user]);
+  }, [date, user?.token, user?.id]);
 
   useEffect(() => { loadBooked(); }, [loadBooked]);
 
   async function handleBook(slot) {
     setMsg(null);
     if (!user) { onRequireLogin?.(); return; }
-
+    // doble-check en cliente
     if (booked.some(b => overlap(slot, b))) {
       setMsg('Esa franja ya está ocupada. Refresca y prueba otra.');
       await loadBooked();
       return;
     }
-
     setBookingSlot(slot.startTime);
     try {
       const req = {
@@ -97,20 +106,28 @@ export default function Booking({ user, onRequireLogin }) {
         title: `Cita con ${user.name}`,
         description: 'Reserva desde la web'
       };
-      const created = await createMyAppointment(req, user.token);
+      const created = await createAppointment(req, user.token);
 
+      // Si el servidor devolvió el objeto creado (AppointmentResponse), lo usamos.
+      // Si devolvió { raw: '' } u otro formato, hacemos refetch para asegurar consistencia.
       if (created && created.id) {
+        // actualizar estado local sin esperar recarga completa (optimista pero fiable)
         setBooked(prev => [...prev, created]);
         setSlots(prev => prev.filter(s => !overlap(s, created)));
         setMsg('Cita reservada correctamente.');
+        // notificar a otros componentes (MyAppointments escucha esto)
         window.dispatchEvent(new CustomEvent('appointmentBooked', { detail: created }));
       } else {
+        // fallback: recargar desde servidor para obtener la cita
         setMsg('Cita reservada correctamente. Actualizando...');
         await loadBooked();
       }
     } catch (e) {
-      setMsg('No se pudo reservar: ' + (e.message || JSON.stringify(e)));
+      // parseo razonable de error
+      const text = e && (e.message || e.body || JSON.stringify(e));
+      setMsg('No se pudo reservar: ' + text);
       if (e && e.status === 401) onRequireLogin?.();
+      // recargar para actualizar franjas (importante ante solapes concurrentes)
       await loadBooked();
     } finally {
       setBookingSlot(null);
@@ -124,6 +141,7 @@ export default function Booking({ user, onRequireLogin }) {
       <div style={{ marginBottom: 12 }}>
         <label>Fecha: <input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
         <button className="btn" onClick={loadBooked} disabled={loading} style={{ marginLeft: 8 }}>Refrescar</button>
+        {cannotFetchAll && <span style={{ marginLeft: 12, color: '#b45' }}>No puedes ver franjas ocupadas globalmente; el servidor validará solapes al crear la cita.</span>}
       </div>
 
       <div>
