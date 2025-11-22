@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from 'react';
-
-/*
- Ajustes para usar exactamente AppointmentRequest/Response:
- - MyAppointments usa GET /api/appointments/user/{userId}
- - escucha evento 'appointmentBooked' y recarga
-*/
+import { getMyAppointments } from '../api/apiUser'; // tu API existente
+import { format } from 'date-fns';
 
 function useApi(user) {
   const token = user?.token;
@@ -28,18 +24,17 @@ function useApi(user) {
 }
 
 export function MyAppointments({ user }) {
-  const api = useApi(user);
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
 
   async function loadAppointments() {
     setError(null);
     try {
-      if (!user || !user.id) {
+      if (!user || !user.userId) {
         setAppointments([]);
         return;
       }
-      const data = await api.get(`/api/appointments/user/${user.id}`);
+      const data = await getMyAppointments(user.userId, user.token);
       setAppointments(Array.isArray(data) ? data : []);
     } catch (e) {
       setError('No se pudieron cargar las citas: ' + (e.message || e));
@@ -48,51 +43,70 @@ export function MyAppointments({ user }) {
   }
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!mounted) return;
-      await loadAppointments();
-    })();
+    loadAppointments();
 
-    const onBooked = (ev) => { loadAppointments(); };
+    const onBooked = () => loadAppointments();
     window.addEventListener('appointmentBooked', onBooked);
-
-    return () => {
-      mounted = false;
-      window.removeEventListener('appointmentBooked', onBooked);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    return () => window.removeEventListener('appointmentBooked', onBooked);
+  }, [user?.userId, user?.token]);
 
   return (
     <div id="mis-citas" className="container">
       <h3 className="section-title">Mis citas</h3>
       {error && <div className="auth-error">{error}</div>}
-      <div style={{ marginBottom: 12 }}>
-        <button className="btn" onClick={loadAppointments}>Refrescar</button>
-      </div>
 
-      {appointments.length === 0 ? <p>No tienes citas registradas.</p> : (
-        <div className="testimonials-list">
-          {appointments.map(a => (
-            <div key={a.id} className="testimonial">
-              <p><strong>{a.title}</strong> — {a.userName} ({a.userEmail})</p>
-              <p>{a.startTime} → {a.endTime}</p>
-              <p>{a.description}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', position: 'relative' }}>
+        {appointments.length === 0 ? (
+          <p>No tienes citas registradas.</p>
+        ) : (
+          appointments.map(a => {
+            const startDate = new Date(a.startTime);
+            const formatted = format(startDate, 'HH:mm dd/MM/yyyy');
+            return (
+              <div
+                key={a.id}
+                className="appointment-entry"
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  backgroundColor: '#f5f5f5',
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  position: 'relative'
+                }}
+              >
+                <span>{a.title}</span>
+                <span style={{ color: '#555', fontWeight: '500' }}>{formatted}</span>
+              </div>
+            );
+          })
+        )}
+
+        <img
+          src="/refresh.png"
+          alt="Refrescar"
+          onClick={loadAppointments}
+          style={{
+            width: 32,
+            height: 32,
+            cursor: 'pointer',
+            alignSelf: 'flex-end',
+            marginTop: '4px'
+          }}
+        />
+      </div>
     </div>
   );
 }
 
-/* VISTA: Mis pedidos (componente nombrado) */
+
 export function MyOrders({ user }) {
   const api = useApi(user);
   const [orders, setOrders] = useState([]);
   const [error] = useState(null);
-  // intentamos obtener /api/orders, si no existe ponemos orders === null
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -100,7 +114,7 @@ export function MyOrders({ user }) {
         const data = await api.get('/api/orders');
         if (!mounted) return;
         const filtered = Array.isArray(data)
-          ? data.filter(o => (o.userEmail && o.userEmail.toLowerCase() === (user.email || '').toLowerCase()) || (o.userId && String(o.userId) === String(user.id)))
+          ? data.filter(o => (o.userEmail && o.userEmail.toLowerCase() === (user.email || '').toLowerCase()) || (o.userId && String(o.userId) === String(user.userId)))
           : [];
         setOrders(filtered);
       } catch (e) {
@@ -108,7 +122,7 @@ export function MyOrders({ user }) {
       }
     })();
     return () => { mounted = false; };
-  }, [api, user.email, user.id]);
+  }, [api, user.email, user.userId]);
 
   return (
     <div id="mis-pedidos" className="container">
@@ -138,7 +152,6 @@ export function MyOrders({ user }) {
   );
 }
 
-/* Componente original: panel con pestañas (se mantiene como default export) */
 export default function UserPanel({ user }) {
   const [tab, setTab] = useState('citas');
   return (

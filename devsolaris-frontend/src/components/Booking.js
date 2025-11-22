@@ -1,152 +1,199 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { getMyAppointments, createMyAppointment } from '../api/apiUser';
+import React, { useState, useEffect } from 'react';
+import { 
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, 
+  isSameDay, format, isBefore, isSameMonth, addMonths, subMonths, setHours, setMinutes 
+} from 'date-fns';
+import { createMyAppointment } from '../api/apiUser'; // tu API
 
-/**
- * Construye ISO-local sin sufijo Z: yyyy-MM-ddTHH:mm:ss
- */
-function toLocalIsoNoZone(date) {
-  const pad = (n) => String(n).padStart(2, '0');
-  const y = date.getFullYear();
-  const m = pad(date.getMonth() + 1);
-  const d = pad(date.getDate());
-  const hh = pad(date.getHours());
-  const mm = pad(date.getMinutes());
-  const ss = pad(date.getSeconds());
-  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
-}
+const TYPES = [
+  { id: 'consulta', label: 'Consulta (30 min)', duration: 30 },
+  { id: 'masaje', label: 'Masaje (45 min)', duration: 45 },
+  { id: 'nutricion', label: 'Asesoramiento nutricional (60 min)', duration: 60 }
+];
 
-/**
- * Construye franjas horarias de un día
- */
-function buildDaySlots(dateStr, startHour = 8, endHour = 15, slotMinutes = 60) {
+function generateSlots(day, duration, reservedSlots = [], startHour = 8, endHour = 15) {
   const slots = [];
-  const [yy, mm, dd] = dateStr.split('-').map(Number);
-  for (let h = startHour; h < endHour; h++) {
-    const s = new Date(yy, mm - 1, dd, h, 0, 0);
-    const e = new Date(s);
-    e.setMinutes(e.getMinutes() + slotMinutes);
-    slots.push({
-      startTime: toLocalIsoNoZone(s),
-      endTime: toLocalIsoNoZone(e),
-      label: `${String(h).padStart(2,'0')}:00 - ${String(h+1).padStart(2,'0')}:00`
+  let slotTime = setHours(setMinutes(new Date(day), 0), startHour);
+  const endOfDay = setHours(setMinutes(new Date(day), 0), endHour);
+
+  while (slotTime.getTime() + duration * 60 * 1000 <= endOfDay.getTime()) {
+    const slotEnd = new Date(slotTime.getTime() + duration * 60 * 1000);
+
+    const overlaps = reservedSlots.some(app => {
+      const appStart = new Date(app.startTime);
+      const appEnd = new Date(app.endTime);
+      return slotTime < appEnd && slotEnd > appStart;
     });
+
+    if (!overlaps) {
+      slots.push(format(slotTime, 'HH:mm'));
+    }
+
+    slotTime = new Date(slotTime.getTime() + 30 * 60 * 1000); // incrementa 30 min
   }
+
   return slots;
 }
 
-/**
- * Comprueba si una franja horaria se solapa con una cita existente
- */
-function overlap(slot, appointment) {
-  const s1 = new Date(slot.startTime).getTime();
-  const e1 = new Date(slot.endTime).getTime();
-  const bs = appointment.startTime ? new Date(appointment.startTime).getTime() : 0;
-  const be = appointment.endTime ? new Date(appointment.endTime).getTime() : 0;
-  if (!bs || !be) return false;
-  return Math.max(s1, bs) < Math.min(e1, be);
+function formatLocalDate(date) {
+  const pad = num => String(num).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 export default function Booking({ user, onRequireLogin }) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedType, setSelectedType] = useState(TYPES[0].id);
   const [slots, setSlots] = useState([]);
-  const [booked, setBooked] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState(null);
-  const [bookingSlot, setBookingSlot] = useState(null);
+  const [reservedSlots, setReservedSlots] = useState([]);
 
-  const loadBooked = useCallback(async () => {
-    if (!user) return;
-    setMsg(null);
-    setLoading(true);
-    try {
-      const startDate = new Date(date); startDate.setHours(0,0,0,0);
-      const endDate = new Date(date); endDate.setHours(23,59,59,999);
+  const today = new Date();
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-      const data = await getMyAppointments(user.id, user.token);
-      const arr = Array.isArray(data) ? data : [];
-      setBooked(arr);
-
-      const allSlots = buildDaySlots(date);
-      const available = allSlots.filter(s => !arr.some(b => overlap(s, b)));
-      setSlots(available);
-    } catch (e) {
-      setMsg('Error cargando citas: ' + (e.message || JSON.stringify(e)));
-      setSlots(buildDaySlots(date));
-      setBooked([]);
-    } finally {
-      setLoading(false);
+  const rows = [];
+  let days = [];
+  let day = startDate;
+  while (day <= endDate) {
+    for (let i = 0; i < 7; i++) {
+      days.push(day);
+      day = addDays(day, 1);
     }
-  }, [date, user]);
+    rows.push(days);
+    days = [];
+  }
 
-  useEffect(() => { loadBooked(); }, [loadBooked]);
+  useEffect(() => {
+    if (isBefore(selectedDate, new Date(today.getFullYear(), today.getMonth(), today.getDate()))) {
+      setSlots([]);
+    } else {
+      const type = TYPES.find(t => t.id === selectedType);
+      setSlots(generateSlots(selectedDate, type.duration, reservedSlots));
+    }
+  }, [selectedDate, selectedType, reservedSlots]);
 
-  async function handleBook(slot) {
-    setMsg(null);
-    if (!user) { onRequireLogin?.(); return; }
+  function onSelectDay(d) {
+    const compareDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (isBefore(d, compareDay) || d.getDay() === 0 || d.getDay() === 6) return; // fin de semana deshabilitado
+    setSelectedDate(d);
+  }
 
-    if (booked.some(b => overlap(slot, b))) {
-      setMsg('Esa franja ya está ocupada. Refresca y prueba otra.');
-      await loadBooked();
+  async function reserveSlot(time) {
+    if (!user) {
+      onRequireLogin();
       return;
     }
 
-    setBookingSlot(slot.startTime);
-    try {
-      const req = {
-        userId: user.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        title: `Cita con ${user.name}`,
-        description: 'Reserva desde la web'
-      };
-      const created = await createMyAppointment(req, user.token);
+    const type = TYPES.find(t => t.id === selectedType);
+    const start = new Date(selectedDate);
+    const [hours, minutes] = time.split(':').map(Number);
+    start.setHours(hours, minutes, 0, 0);
 
-      if (created && created.id) {
-        setBooked(prev => [...prev, created]);
-        setSlots(prev => prev.filter(s => !overlap(s, created)));
-        setMsg('Cita reservada correctamente.');
-        window.dispatchEvent(new CustomEvent('appointmentBooked', { detail: created }));
-      } else {
-        setMsg('Cita reservada correctamente. Actualizando...');
-        await loadBooked();
-      }
+    const end = new Date(start.getTime() + type.duration * 60 * 1000);
+
+    const startLocal = formatLocalDate(start);
+    const endLocal = formatLocalDate(end);
+
+    const payload = {
+      userId: user.userId,
+      startTime: startLocal,
+      endTime: endLocal,
+      title: type.label,
+      description: ''
+    };
+
+    try {
+      await createMyAppointment(payload, user.token);
+      setReservedSlots(prev => [...prev, { startTime: startLocal, endTime: endLocal }]);
+      alert(`Cita reservada: ${time} — ${type.label}`);
     } catch (e) {
-      setMsg('No se pudo reservar: ' + (e.message || JSON.stringify(e)));
-      if (e && e.status === 401) onRequireLogin?.();
-      await loadBooked();
-    } finally {
-      setBookingSlot(null);
+      console.error(e);
+      alert('Error al reservar la cita: ' + (e.message || e));
     }
   }
 
   return (
-    <div className="container booking-component">
-      <h3 className="section-title">Reservar cita</h3>
-      {msg && <div className="auth-error">{msg}</div>}
-      <div style={{ marginBottom: 12 }}>
-        <label>Fecha: <input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
-        <button className="btn" onClick={loadBooked} disabled={loading} style={{ marginLeft: 8 }}>Refrescar</button>
-      </div>
+    <div className="booking-grid container">
+      <div className="calendar-card card">
+        <div className="card-header">
+          <button className="icon-btn" onClick={() => setCurrentMonth(subMonths(currentMonth,1))}>‹</button>
+          <h4>{format(currentMonth, 'MMMM yyyy')}</h4>
+          <button className="icon-btn" onClick={() => setCurrentMonth(addMonths(currentMonth,1))}>›</button>
+        </div>
 
-      <div>
-        {loading && <p>Cargando horas...</p>}
-        {!loading && slots.length === 0 && <p>No hay franjas disponibles para este día.</p>}
-        <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
-          {slots.map(s => {
-            const disabled = bookingSlot === s.startTime || booked.some(b => overlap(s, b));
-            return (
-              <div key={s.startTime} className="slot-card" style={{ padding: 10, border: '1px solid #eee', borderRadius: 6 }}>
-                <div>{s.label}</div>
-                <div style={{ marginTop: 8 }}>
-                  <button className="btn" onClick={() => handleBook(s)} disabled={disabled}>
-                    {bookingSlot === s.startTime ? 'Reservando...' : 'Reservar'}
+        <div className="calendar">
+          <div className="weekdays">
+            {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+              <div key={d} className="weekday">{d}</div>
+            ))}
+          </div>
+
+          {rows.map((week, wi) => (
+            <div className="week" key={wi}>
+              {week.map((d, i) => {
+                const isToday = isSameDay(d, today);
+                const disabled = 
+                  isBefore(d, new Date(today.getFullYear(), today.getMonth(), today.getDate())) ||
+                  d.getDay() === 0 || d.getDay() === 6; // deshabilitar fines de semana
+                const inMonth = isSameMonth(d, monthStart);
+                const selected = isSameDay(d, selectedDate);
+
+                return (
+                  <button
+                    key={i}
+                    className={
+                      'day' +
+                      (disabled ? ' day-disabled' : '') +
+                      (!inMonth ? ' day-outmonth' : '') +
+                      (isToday ? ' day-today' : '') +
+                      (selected ? ' day-selected' : '')
+                    }
+                    onClick={() => onSelectDay(d)}
+                    disabled={disabled}
+                    title={format(d, 'yyyy-MM-dd')}
+                  >
+                    <span className="day-number">{format(d, 'd')}</span>
+                    {disabled && <span className="day-overlay">✕</span>}
                   </button>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
+
+      <aside className="slots-card card">
+        <div className="card-header">
+          <h4>Huecos disponibles</h4>
+        </div>
+
+        <div className="card-body">
+          <label>Tipo de cita</label>
+          <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className="select">
+            {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+
+          <div className="selected-day">
+            <strong>{format(selectedDate, 'EEEE, dd MMMM yyyy')}</strong>
+          </div>
+
+          {slots.length === 0 ? (
+            <p className="muted">No hay huecos disponibles para este día.</p>
+          ) : (
+            <div className="slots-list">
+              {slots.map((s, i) => (
+                <button key={i} className="slot-btn" onClick={() => reserveSlot(s)}>{s}</button>
+              ))}
+            </div>
+          )}
+
+          <div className="note muted">
+            Los días pasados y fines de semana aparecen deshabilitados y tachados. El día actual está resaltado.
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
