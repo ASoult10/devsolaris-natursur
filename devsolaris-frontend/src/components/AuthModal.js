@@ -1,45 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function AuthModal({ open, onClose, onLogin }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState("login");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  //URL REAL DEL BACKEND (AJUSTA SI TU PUERTO ES OTRO)
+  const API_URL = "http://localhost:8080/api/auth";
+
+  // Limpia los campos SIEMPRE al abrir el modal
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setEmail("");
+      setPassword("");
+      setError(null);
+    }
+  }, [open]);
 
   if (!open) return null;
 
-  function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Simple fake auth
-    const user = { name: name || email.split('@')[0], email };
-    onLogin(user);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const endpoint = mode === "login" 
+        ? `${API_URL}/login`
+        : `${API_URL}/register`;
+
+      const body =
+        mode === "login"
+          ? { email, password }
+          : { name, email, password };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error en autenticación");
+
+      onLogin(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <header className="modal-header">
-          <h4>{mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</h4>
-          <button className="icon-btn" onClick={onClose}>✕</button>
-        </header>
+    <div className="auth-backdrop" onClick={onClose}>
+      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+        
+        {/* TABS */}
+        <div className="auth-tabs">
+          <button
+            className={mode === "login" ? "active" : ""}
+            onClick={() => setMode("login")}
+          >
+            Iniciar sesión
+          </button>
+          <button
+            className={mode === "register" ? "active" : ""}
+            onClick={() => setMode("register")}
+          >
+            Registrarse
+          </button>
+        </div>
 
-        <form className="modal-body" onSubmit={handleLogin}>
-          {mode === 'signup' && (
+        {/* CLOSE BUTTON */}
+        <button className="close-btn" onClick={onClose}>✕</button>
+
+        <form onSubmit={handleSubmit} className="auth-body">
+
+          {error && <p className="auth-error">{error}</p>}
+
+          {mode === "register" && (
             <label>
               Nombre
-              <input value={name} onChange={e => setName(e.target.value)} required />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </label>
           )}
+
           <label>
             Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </label>
 
-          <div className="modal-actions">
-            <button className="btn" type="submit">{mode === 'login' ? 'Entrar' : 'Crear cuenta'}</button>
-            <button type="button" className="btn ghost" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
-              {mode === 'login' ? 'Crear cuenta' : '¿Ya tienes cuenta? Entrar'}
-            </button>
-          </div>
+          <label>
+            Contraseña
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+
+          <button className="auth-submit" disabled={loading} type="submit">
+            {loading
+              ? "Procesando..."
+              : mode === "login"
+              ? "Entrar"
+              : "Registrarse"}
+          </button>
         </form>
       </div>
     </div>

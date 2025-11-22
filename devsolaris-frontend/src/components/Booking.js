@@ -1,169 +1,150 @@
-import React, { useState, useMemo } from 'react';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameDay, format, isBefore, isSameMonth, addMonths, subMonths } from 'date-fns';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getMyAppointments, createMyAppointment } from '../api/apiUser';
+
+
+function toLocalIsoNoZone(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const y = date.getFullYear();
+  const m = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const mm = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+}
 
 /**
- * Booking component:
- * - muestra un calendario mensual
- * - los días pasados aparecen gris y tachados (no seleccionables)
- * - el día actual se marca
- * - al seleccionar un día, en la columna derecha aparecen huecos horarios disponibles
- * - disponibilidad simulada por tipo de cita y día (puedes conectar a API)
- *
- * Requisitos en el PDF: el calendario aparece al deslizar hacia abajo desde "Reserva tu cita".
- * Aquí hemos colocado el componente en la sección id="booking" para que el botón "Reserva tu sesión ahora"
- * lo desplace.
- *
- * Referencia PDF de requisitos: mockup del flujo de reserva. :contentReference[oaicite:2]{index=2}
+ * Construye franjas horarias de un día
  */
+function buildDaySlots(dateStr, startHour = 8, endHour = 15, slotMinutes = 60) {
+  const slots = [];
+  const [yy, mm, dd] = dateStr.split('-').map(Number);
+  for (let h = startHour; h < endHour; h++) {
+    const s = new Date(yy, mm - 1, dd, h, 0, 0);
+    const e = new Date(s);
+    e.setMinutes(e.getMinutes() + slotMinutes);
+    slots.push({
+      startTime: toLocalIsoNoZone(s),
+      endTime: toLocalIsoNoZone(e),
+      label: `${String(h).padStart(2,'0')}:00 - ${String(h+1).padStart(2,'0')}:00`
+    });
+  }
+  return slots;
+}
 
-const TYPES = [
-  { id: 'consulta', label: 'Consulta (30 min)' },
-  { id: 'masaje', label: 'Masaje (45 min)' },
-  { id: 'nutricion', label: 'Asesoramiento nutricional (60 min)' }
-];
-
-function generateMockSlots(day, typeId) {
-  // Genera huecos mock: entre 9:00 y 18:00 con variaciones
-  const base = [9,10,11,12,15,16,17];
-  // Simula que algunos días tienen menos huecos
-  const dayNum = day.getDate();
-  const slots = base.filter(h => ((h + dayNum + (typeId.length)) % 3) !== 0);
-  return slots.map(h => `${String(h).padStart(2, '0')}:00`);
+/**
+ * Comprueba si una franja horaria se solapa con una cita existente
+ */
+function overlap(slot, appointment) {
+  const s1 = new Date(slot.startTime).getTime();
+  const e1 = new Date(slot.endTime).getTime();
+  const bs = appointment.startTime ? new Date(appointment.startTime).getTime() : 0;
+  const be = appointment.endTime ? new Date(appointment.endTime).getTime() : 0;
+  if (!bs || !be) return false;
+  return Math.max(s1, bs) < Math.min(e1, be);
 }
 
 export default function Booking({ user, onRequireLogin }) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedType, setSelectedType] = useState(TYPES[0].id);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [slots, setSlots] = useState([]);
+  const [booked, setBooked] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [bookingSlot, setBookingSlot] = useState(null);
 
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday start
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const loadBooked = useCallback(async () => {
+    if (!user) return;
+    setMsg(null);
+    setLoading(true);
+    try {
+      const startDate = new Date(date); startDate.setHours(0,0,0,0);
+      const endDate = new Date(date); endDate.setHours(23,59,59,999);
 
-  const rows = [];
-  let days = [];
-  let day = startDate;
-  while (day <= endDate) {
-    for (let i = 0; i < 7; i++) {
-      days.push(day);
-      day = addDays(day, 1);
+      const data = await getMyAppointments(user.id, user.token);
+      const arr = Array.isArray(data) ? data : [];
+      setBooked(arr);
+
+      const allSlots = buildDaySlots(date);
+      const available = allSlots.filter(s => !arr.some(b => overlap(s, b)));
+      setSlots(available);
+    } catch (e) {
+      setMsg('Error cargando citas: ' + (e.message || JSON.stringify(e)));
+      setSlots(buildDaySlots(date));
+      setBooked([]);
+    } finally {
+      setLoading(false);
     }
-    rows.push(days);
-    days = [];
-  }
+  }, [date, user]);
 
-  const today = new Date();
+  useEffect(() => { loadBooked(); }, [loadBooked]);
 
-  const slots = useMemo(() => {
-    // si la fecha seleccionada es pasada => [] ; si es futuro => generar slots mock
-    if (isBefore(selectedDate, new Date(today.getFullYear(), today.getMonth(), today.getDate()))) {
-      return [];
-    }
-    return generateMockSlots(selectedDate, selectedType);
-  }, [selectedDate, selectedType]);
+  async function handleBook(slot) {
+    setMsg(null);
+    if (!user) { onRequireLogin?.(); return; }
 
-  function onSelectDay(d) {
-    // no seleccionar días pasados
-    const compareDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    if (isBefore(d, compareDay)) return;
-    setSelectedDate(d);
-  }
-
-  function reserveSlot(time) {
-    if (!user) {
-      onRequireLogin();
+    if (booked.some(b => overlap(slot, b))) {
+      setMsg('Esa franja ya está ocupada. Refresca y prueba otra.');
+      await loadBooked();
       return;
     }
-    const payload = {
-      user,
-      date: format(selectedDate, 'yyyy-MM-dd'),
-      time,
-      type: selectedType
-    };
-    // Simulación: aquí harías POST al backend. Por ahora usamos alert + console
-    alert(`Reserva simulada:\n${payload.date} ${time} — ${selectedType}\nUsuario: ${user.name}`);
-    console.log('Reserva payload', payload);
+
+    setBookingSlot(slot.startTime);
+    try {
+      const req = {
+        userId: user.id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        title: `Cita con ${user.name}`,
+        description: 'Reserva desde la web'
+      };
+      const created = await createMyAppointment(req, user.token);
+
+      if (created && created.id) {
+        setBooked(prev => [...prev, created]);
+        setSlots(prev => prev.filter(s => !overlap(s, created)));
+        setMsg('Cita reservada correctamente.');
+        window.dispatchEvent(new CustomEvent('appointmentBooked', { detail: created }));
+      } else {
+        setMsg('Cita reservada correctamente. Actualizando...');
+        await loadBooked();
+      }
+    } catch (e) {
+      setMsg('No se pudo reservar: ' + (e.message || JSON.stringify(e)));
+      if (e && e.status === 401) onRequireLogin?.();
+      await loadBooked();
+    } finally {
+      setBookingSlot(null);
+    }
   }
 
   return (
-    <div className="booking-grid container">
-      <div className="calendar-card card">
-        <div className="card-header">
-          <button className="icon-btn" onClick={() => setCurrentMonth(subMonths(currentMonth,1))}>‹</button>
-          <h4>{format(currentMonth, 'MMMM yyyy')}</h4>
-          <button className="icon-btn" onClick={() => setCurrentMonth(addMonths(currentMonth,1))}>›</button>
-        </div>
-
-        <div className="calendar">
-          <div className="weekdays">
-            {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-              <div key={d} className="weekday">{d}</div>
-            ))}
-          </div>
-
-          {rows.map((week, wi) => (
-            <div className="week" key={wi}>
-              {week.map((d, i) => {
-                const isToday = isSameDay(d, today);
-                const disabled = isBefore(d, new Date(today.getFullYear(), today.getMonth(), today.getDate()));
-                const inMonth = isSameMonth(d, monthStart);
-                const selected = isSameDay(d, selectedDate);
-
-                return (
-                  <button
-                    key={i}
-                    className={
-                      'day' +
-                      (disabled ? ' day-disabled' : '') +
-                      (!inMonth ? ' day-outmonth' : '') +
-                      (isToday ? ' day-today' : '') +
-                      (selected ? ' day-selected' : '')
-                    }
-                    onClick={() => onSelectDay(d)}
-                    disabled={disabled}
-                    title={format(d, 'yyyy-MM-dd')}
-                  >
-                    <span className="day-number">{format(d, 'd')}</span>
-                    {disabled && <span className="day-overlay">✕</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+    <div className="container booking-component">
+      <h3 className="section-title">Reservar cita</h3>
+      {msg && <div className="auth-error">{msg}</div>}
+      <div style={{ marginBottom: 12 }}>
+        <label>Fecha: <input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
+        <button className="btn" onClick={loadBooked} disabled={loading} style={{ marginLeft: 8 }}>Refrescar</button>
       </div>
 
-      <aside className="slots-card card">
-        <div className="card-header">
-          <h4>Huecos disponibles</h4>
+      <div>
+        {loading && <p>Cargando horas...</p>}
+        {!loading && slots.length === 0 && <p>No hay franjas disponibles para este día.</p>}
+        <div className="slots-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
+          {slots.map(s => {
+            const disabled = bookingSlot === s.startTime || booked.some(b => overlap(s, b));
+            return (
+              <div key={s.startTime} className="slot-card" style={{ padding: 10, border: '1px solid #eee', borderRadius: 6 }}>
+                <div>{s.label}</div>
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn" onClick={() => handleBook(s)} disabled={disabled}>
+                    {bookingSlot === s.startTime ? 'Reservando...' : 'Reservar'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        <div className="card-body">
-          <label>Tipo de cita</label>
-          <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className="select">
-            {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-          </select>
-
-          <div className="selected-day">
-            <strong>{format(selectedDate, 'EEEE, dd MMMM yyyy')}</strong>
-          </div>
-
-          {slots.length === 0 ? (
-            <p className="muted">No hay huecos disponibles para este día.</p>
-          ) : (
-            <div className="slots-list">
-              {slots.map((s, i) => (
-                <button key={i} className="slot-btn" onClick={() => reserveSlot(s)}>{s}</button>
-              ))}
-            </div>
-          )}
-
-          <div className="note muted">
-            Los días pasados aparecen deshabilitados y tachados. El día actual está resaltado.
-          </div>
-        </div>
-      </aside>
+      </div>
     </div>
   );
 }
