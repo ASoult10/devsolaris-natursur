@@ -1,3 +1,4 @@
+import json
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 )
@@ -20,20 +21,8 @@ ENCUESTA = [
     "¿Cómo calificarías este bot del 1 al 5?"
 ]
 
-PRODUCTOS = [
-    {
-        "id": "f1",
-        "nombre": "Fórmula 1 Alimento Equilibrado",
-        "descripcion": "Sustituto de comida con proteínas, vitaminas y minerales.",
-        "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-4468-es.png:pdp-w875h783?fmt=webp-alpha"
-    },
-    {
-        "id": "te_termogénico",
-        "nombre": "Té Termogénico Herbal",
-        "descripcion": "Bebida instantánea con extracto de té verde y negro.",
-        "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-048k-es.png:pdp-w875h783?fmt=webp-alpha"
-    }
-]
+with open('F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO\PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json') as f:
+    PRODUCTOS = json.load(f)
 
 # Diccionario temporal para almacenar respuestas
 respuestas_usuarios = {}
@@ -42,7 +31,6 @@ respuestas_usuarios = {}
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 ¡Hola! Puedes usar los siguientes comandos:\n"
-        "📋 /encuesta - Responder una breve encuesta\n"
         "🛍️ /productos - Ver nuestro catálogo Herbalife"
     )
 
