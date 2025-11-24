@@ -21,7 +21,7 @@ ENCUESTA = [
     "¿Cómo calificarías este bot del 1 al 5?"
 ]
 
-with open('F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO\PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json') as f:
+with open('F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO\PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json', encoding="utf-8") as f:
     PRODUCTOS = json.load(f)
 
 # Diccionario temporal para almacenar respuestas
@@ -43,7 +43,7 @@ async def productos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(botones)
         await update.message.reply_photo(
             photo=producto["imagen"],
-            caption=f"**{producto['nombre']}**\n{producto['descripcion']}",
+            caption=f"**{producto['nombre']}**\n{producto['descripcion']}**\n✅ Precio: {producto["precio"]}",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )

@@ -25,6 +25,8 @@ def filter_invalid_products(productos):
         # Remove HTML tags safely
         desc = producto["descripcion"]
         desc = re.sub(r"<.*?>", "", desc).strip()  # removes any <tag>
+        desc = re.sub(r"<*?", "", desc).strip()  # removes any <tag>
+
 
         producto["descripcion"] = desc
 
