@@ -1,37 +1,48 @@
 import json
+import os
+from datetime import datetime
 from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+    Update, InlineKeyboardButton, InlineKeyboardMarkup
 )
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
     CallbackQueryHandler, ContextTypes, filters
 )
+
 # === CONFIGURACIÓN ===
-#Pegar en navegador: https://api.telegram.org/8284120713:AAH1gMBxbnk-8NKq3kBMxUY-pnoDaYM93LU/getUpdates
 TOKEN = "8284120713:AAH1gMBxbnk-8NKq3kBMxUY-pnoDaYM93LU" 
-ADMIN_CHAT_ID = 8370275487 #cntacto que recibirá los resultados
+ADMIN_CHAT_ID = 8370275487
 
-usuarios_en_solicitud = {}
+carritos = {}  # <--- CART FOR MULTIPLE ITEMS
 
-# === DATOS ===
-ENCUESTA = [
-    "¿Cuál es tu nombre?",
-    "¿Qué edad tienes?",
-    "¿Cuál es tu comida favorita?",
-    "¿Cómo calificarías este bot del 1 al 5?"
-]
-
-with open('F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO\PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json', encoding="utf-8") as f:
+# === LOAD PRODUCTS ===
+PRODUCTOS_PATH = 'F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO/PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json'
+with open(PRODUCTOS_PATH, encoding="utf-8") as f:
     PRODUCTOS = json.load(f)
 
-# Diccionario temporal para almacenar respuestas
-respuestas_usuarios = {}
+ORDERS_FILE = 'F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO/PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/orders.json'
 
-# === FUNCIONES ===
+# === Ensure orders.json exists ===
+if not os.path.exists(ORDERS_FILE):
+    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+        json.dump([], f, indent=4, ensure_ascii=False)
+
+
+def guardar_orden(data):
+    with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+        orders = json.load(f)
+    orders.append(data)
+    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(orders, f, indent=4, ensure_ascii=False)
+
+
+# === FUNCTIONS ===
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 ¡Hola! Puedes usar los siguientes comandos:\n"
-        "🛍️ /productos - Ver nuestro catálogo Herbalife"
+        "👋 ¡Bienvenido! Usa:\n"
+        "🛍️ /productos - Ver catálogo Herbalife\n"
+        "🧾 /carrito - Ver pedido actual"
     )
 
 
@@ -43,10 +54,12 @@ async def productos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(botones)
         await update.message.reply_photo(
             photo=producto["imagen"],
-            caption=f"**{producto['nombre']}**\n{producto['descripcion']}**\n✅ Precio: {producto["precio"]}",
+            caption=f"**{producto['nombre']}**\n{producto['descripcion']}\n\n"
+                    f"💲 Precio: {producto['precio']}",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
+
 
 async def solicitar_producto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -57,100 +70,140 @@ async def solicitar_producto(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = query.from_user.id
 
     if producto:
-        usuarios_en_solicitud[user_id] = producto
+        context.user_data["producto_seleccionado"] = producto
         await query.message.reply_text(
             f"📦 Has elegido *{producto['nombre']}*\n"
-            f"Por favor, indica la cantidad que deseas pedir:",
+            "👉 ¿Cuántas unidades deseas?",
             parse_mode="Markdown"
         )
+
 
 async def recibir_cantidad(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_chat.id
 
-    if user_id not in usuarios_en_solicitud:
-        return  # No está en modo solicitud
-
-    producto = usuarios_en_solicitud[user_id]
-    texto = update.message.text.strip()
-
-    # Validar que sea un número
-    if not texto.isdigit():
-        await update.message.reply_text("⚠️ Por favor, escribe un número válido (ejemplo: 2).")
+    if "producto_seleccionado" not in context.user_data:
         return
 
-    cantidad = int(texto)
+    producto = context.user_data["producto_seleccionado"]
+    cantidad_txt = update.message.text.strip()
 
-    # Crear mensaje para el admin
-    user = update.message.from_user
-    mensaje_admin = (
-        f"📦 *Nueva solicitud de producto*\n\n"
-        f"👤 Usuario: {user.full_name}\n"
-        f"🆔 ID: {user.id}\n"
-        f"📱 Usuario Telegram: @{user.username or 'no tiene'}\n\n"
-        f"🛍️ Producto: *{producto['nombre']}*\n"
-        f"📊 Cantidad: *{cantidad}*\n"
-        f"{producto['descripcion']}"
-    )
+    if not cantidad_txt.isdigit():
+        await update.message.reply_text("⚠️ Escribe un número válido.")
+        return
 
-    # Enviar al admin
-    await context.bot.send_photo(
-        chat_id=ADMIN_CHAT_ID,
-        photo=producto["imagen"],
-        caption=mensaje_admin,
-        parse_mode="Markdown"
-    )
+    cantidad = int(cantidad_txt)
 
-    # Confirmar al usuario
+    # === Add to cart ===
+    if user_id not in carritos:
+        carritos[user_id] = {"items": []}
+
+    carritos[user_id]["items"].append({
+        "producto": producto,
+        "cantidad": cantidad
+    })
+
+    # Clear temp selection
+    del context.user_data["producto_seleccionado"]
+
+    await mostrar_menu_pedido(update, context, user_id)
+
+
+async def mostrar_menu_pedido(update, context, user_id):
+    botones = [
+        [InlineKeyboardButton("🛒 Añadir otro producto", callback_data="add_more")],
+        [InlineKeyboardButton("✅ Confirmar pedido", callback_data="confirm_order")],
+        [InlineKeyboardButton("❌ Cancelar pedido", callback_data="cancel_order")]
+    ]
+    reply_markup = InlineKeyboardMarkup(botones)
+
+    # Build summary
+    texto = "🧾 *Tu pedido actual:*\n\n"
+    for item in carritos[user_id]["items"]:
+        texto += f"- {item['producto']['nombre']} x {item['cantidad']}\n"
+
     await update.message.reply_text(
-        f"✅ Has solicitado *{cantidad}* unidad(es) de *{producto['nombre']}*.\n"
-        f"El administrador se pondrá en contacto contigo pronto.",
+        texto,
+        reply_markup=reply_markup,
         parse_mode="Markdown"
     )
 
-    # Limpiar estado
-    del usuarios_en_solicitud[user_id]
+
+async def manejar_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    await query.answer()
+
+    if query.data == "add_more":
+        await query.message.reply_text("🛍️ Usa /productos para elegir otro artículo.")
+    elif query.data == "confirm_order":
+        await confirmar_pedido(query, context, user_id)
+    elif query.data == "cancel_order":
+        await cancelar_pedido(query, user_id)
 
 
-async def recibir_respuesta(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_chat.id
-    if user_id not in respuestas_usuarios:
-        await update.message.reply_text("Por favor, usa /start para comenzar la encuesta.")
+async def confirmar_pedido(query, context, user_id):
+    carrito = carritos.get(user_id)
+
+    if not carrito or not carrito["items"]:
+        await query.message.reply_text("❗ No tienes productos en el pedido.")
         return
 
-    data = respuestas_usuarios[user_id]
-    data["respuestas"].append(update.message.text)
-    data["indice"] += 1
+    user = query.from_user
 
-    if data["indice"] < len(ENCUESTA):
-        await update.message.reply_text(ENCUESTA[data["indice"]])
-    else:
-        # Encuesta terminada
-        resumen = "\n".join(
-            f"{ENCUESTA[i]}: {data['respuestas'][i]}" for i in range(len(ENCUESTA))
-        )
-        await update.message.reply_text("¡Gracias por tus respuestas! ✅")
+    # Build order
+    orden = {
+        "user_id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "items": [
+            {
+                "product": item["producto"]["nombre"],
+                "product_id": item["producto"]["id"],
+                "cantidad": item["cantidad"]
+            } for item in carrito["items"]
+        ],
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
 
-        # Enviar los resultados al administrador
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=f"📋 *Nuevo formulario completado:*\n\n{resumen}",
-            parse_mode="Markdown"
-        )
+    guardar_orden(orden)
 
-        # Limpiar los datos
-        del respuestas_usuarios[user_id]
+    # Build text for admin
+    resumen = "🆕 *Nuevo pedido múltiple:*\n\n"
+    resumen += f"👤 {user.full_name} (@{user.username})\n\n"
+    for item in carrito["items"]:
+        resumen += f"- {item['producto']['nombre']} x {item['cantidad']}\n"
+
+    # Send to admin
+    await context.bot.send_message(
+        chat_id=ADMIN_CHAT_ID,
+        text=resumen,
+        parse_mode="Markdown"
+    )
+
+    await query.message.reply_text("✅ Tu pedido ha sido enviado correctamente.")
+
+    # Clear cart
+    del carritos[user_id]
+
+
+async def cancelar_pedido(query, user_id):
+    if user_id in carritos:
+        del carritos[user_id]
+    await query.message.reply_text("❌ Pedido cancelado.")
+
 
 # === MAIN ===
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("productos", productos))
-    app.add_handler(CallbackQueryHandler(solicitar_producto, pattern="^solicitar_"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_cantidad))
+    app.add_handler(CallbackQueryHandler(solicitar_producto, pattern="^solicitar_"))
+    app.add_handler(CallbackQueryHandler(manejar_menu, pattern="^(add_more|confirm_order|cancel_order)$"))
 
-    #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_respuesta))
     print("🤖 Bot en marcha...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()

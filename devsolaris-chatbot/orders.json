@@ -1,0 +1,20 @@
+[
+    {
+        "user_id": 8370275487,
+        "username": null,
+        "full_name": "Julio García Barrena",
+        "items": [
+            {
+                "product": "​​Collagen Skin Booster de Herbalife SKIN",
+                "product_id": "collagen-skin-booster-de-herbalife-skin",
+                "cantidad": 2
+            },
+            {
+                "product": "​​Barritas con Proteínas​ ",
+                "product_id": "barritas-con-protenas",
+                "cantidad": 7
+            }
+        ],
+        "timestamp": "2025-11-25 19:31:37"
+    }
+]
