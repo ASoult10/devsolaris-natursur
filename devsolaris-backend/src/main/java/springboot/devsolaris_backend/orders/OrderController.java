@@ -1,4 +1,4 @@
-package springboot.devsolaris_backend.order;
+package springboot.devsolaris_backend.orders;
 
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

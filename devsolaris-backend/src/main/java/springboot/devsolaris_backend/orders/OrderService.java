@@ -1,10 +1,9 @@
-package springboot.devsolaris_backend.order;
+package springboot.devsolaris_backend.orders;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import springboot.devsolaris_backend.auth.AuthenticationUtil;
-import springboot.devsolaris_backend.auth.Role;
 
 import java.util.List;
 

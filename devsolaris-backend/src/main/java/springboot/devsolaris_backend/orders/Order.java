@@ -1,30 +1,22 @@
-package springboot.devsolaris_backend.user;
+package springboot.devsolaris_backend.orders;
+
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import springboot.devsolaris_backend.auth.Role;
+
 import springboot.devsolaris_backend.baseEntity.BaseEntity;
 
 import java.util.Collection;
 import java.util.List;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 
 @Entity
 @Table(name = "orders")
