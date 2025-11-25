@@ -1,0 +1,44 @@
+[
+  {
+    "id": "frmula-1-alimento-equilibrado",
+    "nombre": "Fórmula 1 Alimento Equilibrado",
+    "descripcion": "Nuestro batido sustitutivo de comidas más vendido y delicioso.",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-4468-es.png",
+    "precio": "58.34 EUR"
+  },
+  {
+    "id": "avena-manzana-y-fibra",
+    "nombre": "​​Avena, Manzana y Fibra​",
+    "descripcion": "​​Una bebida formulada con una mezcla única de fibras solubles e insolubles.​",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-2554-es-pt.png",
+    "precio": "35.73 EUR"
+  },
+  {
+    "id": "concentrado-herbal-aloe",
+    "nombre": "Concentrado Herbal Aloe",
+    "descripcion": "​​Una bebida refrescante baja en calorías elaborada con jugo de Aloe vera de alta calidad.​",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-1065-es-pt.png",
+    "precio": "50.67 EUR"
+  },
+  {
+    "id": "frmula-1-alimento-equilibrado",
+    "nombre": "Fórmula 1 Alimento Equilibrado",
+    "descripcion": "Nuestro batido sustitutivo de comidas más vendido y delicioso.",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-048k-es.png",
+    "precio": "73.4 EUR"
+  },
+  {
+    "id": "barritas-con-protenas",
+    "nombre": "​​Barritas con Proteínas​ ",
+    "descripcion": "​​Una barrita diseñada para ayudarte a aumentar tu ingesta de proteínas.;",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-3968-es-pt.png",
+    "precio": "26.92 EUR"
+  },
+  {
+    "id": "collagen-skin-booster-de-herbalife-skin",
+    "nombre": "​​Collagen Skin Booster de Herbalife SKIN",
+    "descripcion": "​​Complemento alimenticio desarrollado por expertos para una piel de aspecto saludable.​",
+    "imagen": "https://natursur.herbalife.com/dmassets/regional-reusable-assets/emea/images/product-canister/pc-076k-es.png",
+    "precio": "78.52 EUR"
+  }
+]
