@@ -1,6 +1,8 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
+import requests
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup
 )
@@ -12,20 +14,23 @@ from telegram.ext import (
 # === CONFIGURACIÓN ===
 TOKEN = "8284120713:AAH1gMBxbnk-8NKq3kBMxUY-pnoDaYM93LU" 
 ADMIN_CHAT_ID = 8370275487
+BACKEND_API_URL = "http://localhost:8080/api/orders"  # or your deployed backend
 
 carritos = {}  # <--- CART FOR MULTIPLE ITEMS
 
+# === Paths (relative to this script) ===
+BASE_DIR = Path(__file__).resolve().parent
+
 # === LOAD PRODUCTS ===
-PRODUCTOS_PATH = 'F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO/PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/productos_scrapeados.json'
+PRODUCTOS_PATH = BASE_DIR / 'productos_scrapeados.json'
 with open(PRODUCTOS_PATH, encoding="utf-8") as f:
     PRODUCTOS = json.load(f)
 
-ORDERS_FILE = 'F:/Usuarios/USUARIO/Documents/Universidad/CUARTOO/PGPI/DevSolarisCode/devsolaris-natursur/devsolaris-chatbot/orders.json'
+ORDERS_FILE = BASE_DIR / 'orders.json'
 
 # === Ensure orders.json exists ===
-if not os.path.exists(ORDERS_FILE):
-    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
-        json.dump([], f, indent=4, ensure_ascii=False)
+if not ORDERS_FILE.exists():
+    ORDERS_FILE.write_text(json.dumps([], ensure_ascii=False, indent=4), encoding="utf-8")
 
 
 def guardar_orden(data):
@@ -150,30 +155,34 @@ async def confirmar_pedido(query, context, user_id):
 
     user = query.from_user
 
-    # Build order
-    orden = {
-        "user_id": user.id,
-        "username": user.username,
-        "full_name": user.full_name,
-        "items": [
+    # Build order JSON for backend
+    backend_order = {
+        "userId": user.id,
+        "username": user.username or "",
+        "fullName": user.full_name,
+        "items": json.dumps([  # Dump raw items JSON as string, as per your backend entity
             {
                 "product": item["producto"]["nombre"],
-                "product_id": item["producto"]["id"],
+                "productId": item["producto"]["id"],
                 "cantidad": item["cantidad"]
             } for item in carrito["items"]
-        ],
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ])
     }
 
-    guardar_orden(orden)
+    # Send order to backend
+    try:
+        response = requests.post(BACKEND_API_URL, json=backend_order)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        await query.message.reply_text(f"❌ Error enviando el pedido al servidor: {e}")
+        return
 
-    # Build text for admin
+    # Notify admin in Telegram
     resumen = "🆕 *Nuevo pedido múltiple:*\n\n"
     resumen += f"👤 {user.full_name} (@{user.username})\n\n"
     for item in carrito["items"]:
         resumen += f"- {item['producto']['nombre']} x {item['cantidad']}\n"
 
-    # Send to admin
     await context.bot.send_message(
         chat_id=ADMIN_CHAT_ID,
         text=resumen,
