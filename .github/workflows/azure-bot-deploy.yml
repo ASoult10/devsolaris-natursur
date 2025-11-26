@@ -32,7 +32,7 @@ jobs:
         fi
     
     - name: Install dependencies in ZIP
-      working-directory: ./devsolaris-bot
+      working-directory: devsolaris-chatbot/
       run: |
         python -m venv antenv
         source antenv/bin/activate
