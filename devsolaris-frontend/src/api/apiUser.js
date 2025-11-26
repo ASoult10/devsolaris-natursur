@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080" || ''; // si usas proxy en dev deja en blanco
+const API_BASE = "http://devsolaris-app-natursur.azurewebsites.net" || ''; // si usas proxy en dev deja en blanco
 
 function buildUrl(path) {
   return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;

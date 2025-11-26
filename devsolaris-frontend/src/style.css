@@ -346,21 +346,39 @@ body {
 /* ———— BUTTON ———— */
 
 .footer-whatsapp-btn {
-  background: #079d86;
-  color: white;
-  padding: 12px 26px;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: background 0.2s ease, transform 0.1s ease;
-  display: inline-block;
-  width: fit-content;
+  display: none;
 }
 
-.footer-whatsapp-btn:hover {
-  background: #0fb1b9;
-  transform: translateY(-2px);
+.footer-actions {
+  margin-top: 20px;
+}
+
+.social-icons {
+  display: flex;
+  gap: 16px; /* Espacio entre los iconos */
+  justify-content: flex-start; /* Alinea los iconos al inicio */
+}
+
+.social-icon-link {
+  display: block;
+  width: 50px;  /* Tamaño del botón (más grande) */
+  height: 50px; /* Tamaño del botón (más grande) */
+  border-radius: 50%; /* Esto lo hace redondo */
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  background-color: white; /* Fondo blanco para logos con transparencia */
+}
+
+.social-icon-link:hover {
+  transform: scale(1.1) translateY(-2px); /* Efecto al pasar el ratón */
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.social-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Asegura que el logo llene el círculo */
 }
 
 /* ———— RESPONSIVE ———— */
