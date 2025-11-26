@@ -47,20 +47,38 @@ function useApi(user) {
 // --------- COMPONENTE ---------
 export default function AdminPanel({ user }) {
   const [tab, setTab] = useState('users');
-  return (
-    <section id="admin" className="section admin-section">
-      <div className="container">
-        <h3 className="section-title">Panel de administrador</h3>
 
+  return (
+    <section id="admin-panel" className="section">
+      <div className="container">
+        <h2 className="section-title">Panel de Administración</h2>
+        
         <div className="admin-tabs">
-          <button className={`admin-tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Usuarios</button>
-          <button className={`admin-tab ${tab === 'appointments' ? 'active' : ''}`} onClick={() => setTab('appointments')}>Citas</button>
-          <button className={`admin-tab ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>Pedidos</button>
+          <button 
+            onClick={() => setTab('users')} 
+            className={`admin-tab ${tab === 'users' ? 'active' : ''}`}
+          >
+            Usuarios
+          </button>
+          <button 
+            onClick={() => setTab('appointments')} 
+            className={`admin-tab ${tab === 'appointments' ? 'active' : ''}`}
+          >
+            Citas
+          </button>
+          <button 
+            onClick={() => setTab('orders')} 
+            className={`admin-tab ${tab === 'orders' ? 'active' : ''}`}
+          >
+            Pedidos
+          </button>
         </div>
 
-        {tab === 'users' && <AdminUsers user={user} />}
-        {tab === 'appointments' && <AdminAppointments user={user} />}
-        {tab === 'orders' && <AdminOrders />}
+        <div className="admin-content">
+          {tab === 'users' && <AdminUsers user={user} />}
+          {tab === 'appointments' && <AdminAppointments user={user} />}
+          {tab === 'orders' && <AdminOrders />}
+        </div>
       </div>
     </section>
   );
@@ -200,7 +218,8 @@ function AdminAppointments({ user }) {
     setError(null);
     try {
       const data = await api.get('/api/appointments');
-      const sorted = data.sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
+      // Ordena las citas por fecha, de más antigua a más reciente.
+      const sorted = data.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
       setAppointments(sorted);
     } catch (e) {
       setError('No se pudieron cargar las citas: ' + (e.message || e));
@@ -263,9 +282,60 @@ function AdminAppointments({ user }) {
 
 
 function AdminOrders() {
+  const [orders, setOrders] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // La URL donde se está ejecutando la API del chatbot
+  const chatbotApiUrl = process.env.REACT_APP_CHATBOT_API_URL || 'http://localhost:8081';
+
+  async function loadOrders() {
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await fetch(`${chatbotApiUrl}/get-orders`);
+      if (!response.ok) {
+        throw new Error(`No se pudo conectar con el servidor del bot. Estado: ${response.status}`);
+      }
+      const data = await response.json();
+      setOrders(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(`Error al cargar los pedidos: ${e.message}. Asegúrate de que el script del bot se está ejecutando.`);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadOrders();
+  }, [chatbotApiUrl]); // Se ejecuta una vez al montar el componente
+
   return (
     <div>
-      <p>Gestión de pedidos próximamente...</p>
+      <h3 className="section-title">Pedidos Recibidos del Bot</h3>
+      {error && <div className="auth-error">{error}</div>}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button className="btn" onClick={loadOrders} disabled={loading}>
+          {loading ? 'Cargando...' : 'Refrescar'}
+        </button>
+      </div>
+
+      {orders.length === 0 && !loading && (
+        <p>No hay pedidos registrados desde el bot o el servicio no está disponible.</p>
+      )}
+
+      <div className="testimonials-list">
+        {orders.map(order => (
+          <div key={order.id} className="testimonial">
+            <p><strong>Producto:</strong> {order.productName} (x{order.quantity})</p>
+            <p><strong>Usuario Telegram:</strong> {order.telegramUserName} (ID: {order.telegramUserId})</p>
+            <p><strong>Precio:</strong> {order.price}</p>
+            <p><strong>Fecha:</strong> {new Date(order.createdAt).toLocaleString()}</p>
+            <p><strong>Estado:</strong> <span className={`status-${order.status?.toLowerCase()}`}>{order.status}</span></p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
