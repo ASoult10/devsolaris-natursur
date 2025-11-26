@@ -33,7 +33,7 @@ jobs:
 
     - name: Create deployment ZIP
       run: |
-        cd devsolaris-bot
+        cd devsolaris-chatbot
         zip -r ../bot-deploy.zip ./
 
     - name: Deploy ZIP to Azure Web App
