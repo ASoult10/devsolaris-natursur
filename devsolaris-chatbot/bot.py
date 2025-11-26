@@ -15,6 +15,7 @@ from telegram.ext import (
 TOKEN = "8284120713:AAH1gMBxbnk-8NKq3kBMxUY-pnoDaYM93LU" 
 ADMIN_CHAT_ID = 8370275487
 BACKEND_API_URL = "http://localhost:8080/api/orders"  # or your deployed backend
+TOKEN_ADMIN = "I-AM-BOT"
 
 carritos = {}  # <--- CART FOR MULTIPLE ITEMS
 
@@ -156,22 +157,35 @@ async def confirmar_pedido(query, context, user_id):
     user = query.from_user
 
     # Build order JSON for backend
+    import json
+
+    from datetime import datetime
+
     backend_order = {
         "userId": user.id,
         "username": user.username or "",
         "fullName": user.full_name,
-        "items": json.dumps([  # Dump raw items JSON as string, as per your backend entity
+        "items": json.dumps([
             {
                 "product": item["producto"]["nombre"],
                 "productId": item["producto"]["id"],
                 "cantidad": item["cantidad"]
             } for item in carrito["items"]
-        ])
+        ]),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # <-- Add this
+    }
+
+
+
+    # Set headers with your token
+    headers = {
+        "Authorization": f"Bearer {TOKEN_ADMIN}",  # <- Use your token here
+        "Content-Type": "application/json"
     }
 
     # Send order to backend
     try:
-        response = requests.post(BACKEND_API_URL, json=backend_order)
+        response = requests.post(BACKEND_API_URL, json=backend_order, headers=headers)
         response.raise_for_status()
     except requests.RequestException as e:
         await query.message.reply_text(f"❌ Error enviando el pedido al servidor: {e}")
@@ -193,6 +207,7 @@ async def confirmar_pedido(query, context, user_id):
 
     # Clear cart
     del carritos[user_id]
+
 
 
 async def cancelar_pedido(query, user_id):
