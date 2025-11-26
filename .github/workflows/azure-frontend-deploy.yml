@@ -2,10 +2,10 @@ name: Deploy React Frontend to GitHub Pages
 
 on:
   push:
-    branches:
-      - release
+    branches: [ release ]
     paths:
       - 'devsolaris-frontend/**'
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
