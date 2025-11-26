@@ -2,6 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { getMyAppointments } from '../api/apiUser';
 import { format } from 'date-fns';
 
+// --- INICIO: Lógica de API para borrado (copiada de AdminPanel.js para consistencia) ---
+const API_BASE = "http://localhost:8080"; // Aseguramos que apunta al backend
+
+function buildUrl(path) {
+  return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;
+}
+
+async function deleteAppointmentApi(appointmentId, token) {
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(buildUrl(`/api/appointments/${appointmentId}`), {
+    method: 'DELETE',
+    headers: authHeader,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => 'Error desconocido');
+    throw new Error(errorText || `Error ${res.status}`);
+  }
+  // Para DELETE, una respuesta exitosa puede no tener cuerpo.
+  return { success: true };
+}
+// --- FIN: Lógica de API para borrado ---
+
+
 function useApi(user) {
   const token = user?.token;
   const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
@@ -27,6 +51,7 @@ export function MyAppointments({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
 
+  // Esta función para cargar citas no se toca, ya que funciona.
   async function loadAppointments() {
     setError(null);
     try {
@@ -49,6 +74,22 @@ export function MyAppointments({ user }) {
     window.addEventListener('appointmentBooked', onBooked);
     return () => window.removeEventListener('appointmentBooked', onBooked);
   }, [user?.userId, user?.token]);
+
+  // --- INICIO: Nueva función para manejar el borrado ---
+  async function handleDelete(appointmentId) {
+    if (!window.confirm('¿Estás seguro de que quieres cancelar esta cita?')) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteAppointmentApi(appointmentId, user.token);
+      // Tras borrar con éxito, recargamos la lista usando la función que ya funciona.
+      await loadAppointments();
+    } catch (e) {
+      setError('Error al cancelar la cita: ' + e.message);
+    }
+  }
+  // --- FIN: Nueva función para manejar el borrado ---
 
   return (
     <div id="mis-citas" className="container">
@@ -78,7 +119,15 @@ export function MyAppointments({ user }) {
                 }}
               >
                 <span>{a.title}</span>
-                <span style={{ color: '#555', fontWeight: '500' }}>{formatted}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ color: '#555', fontWeight: '500' }}>{formatted}</span>
+                  <img
+                    src="/delete.png"
+                    alt="Cancelar cita"
+                    style={{ width: 20, height: 20, cursor: 'pointer' }}
+                    onClick={() => handleDelete(a.id)}
+                  />
+                </div>
               </div>
             );
           })
@@ -101,7 +150,7 @@ export function MyAppointments({ user }) {
   );
 }
 
-
+/*
 export function MyOrders({ user }) {
   const api = useApi(user);
   const [orders, setOrders] = useState([]);
@@ -150,7 +199,7 @@ export function MyOrders({ user }) {
       )}
     </div>
   );
-}
+}*/
 
 export default function UserPanel({ user }) {
   const [tab, setTab] = useState('citas');
@@ -161,11 +210,9 @@ export default function UserPanel({ user }) {
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
           <button className={`btn ${tab === 'citas' ? 'active' : ''}`} onClick={() => setTab('citas')}>Mis citas</button>
-          <button className={`btn ${tab === 'pedidos' ? 'active' : ''}`} onClick={() => setTab('pedidos')}>Mis pedidos</button>
         </div>
 
         {tab === 'citas' && <MyAppointments user={user} />}
-        {tab === 'pedidos' && <MyOrders user={user} />}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
+import Banner from './components/Banner'; // 1. Importamos el nuevo componente
 import AboutMe from './components/AboutMe';
 import Services from './components/Services';
 import Booking from './components/Booking';
@@ -43,13 +44,16 @@ export default function App() {
 
       <main>
 
-        {/*Banner de bienvenida para TODOS los usuarios, incluido ADMIN */}
-        {user && (
-          <section id="welcome" className="section welcome-section">
-            <div className="container">
-              <h1 className="section-title">Bienvenid@ {user.name}</h1>
-            </div>
-          </section>
+        {/* 2. Lógica de renderizado condicional para Banner o Hero */}
+        {user ? (
+          <Banner user={user} />
+        ) : (
+          <Hero 
+            onReserveClick={() => {
+              const el = document.getElementById('booking');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }} 
+          />
         )}
 
         {/* ============================== */}
@@ -66,21 +70,9 @@ export default function App() {
         /*   SI NO ES ADMIN — WEB NORMAL  */
         /* ============================== */
           <>
-            {!user && (
-              <Hero 
-                onReserveClick={() => {
-                  const el = document.getElementById('booking');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }} 
-              />
-            )}
-
+            {/* Si el usuario está logueado, mostramos sus citas. Si no, la sección "Sobre mí" */}
             <section id="sobre-mi" className="section about-section">
               {user ? <MyAppointments user={user} /> : <AboutMe />}
-            </section>
-
-            <section id="servicios" className="section services-section">
-              {user ? <MyOrders user={user} /> : <Services />}
             </section>
 
             <section id="booking" className="section booking-section">

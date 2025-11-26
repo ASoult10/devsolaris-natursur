@@ -46,7 +46,6 @@ export default function Header({ onOpenAuth, user, onLogout }) {
                 {user ? (
                   <>
                     <a href="#mis-citas">MIS CITAS</a>
-                    <a href="#mis-pedidos">MIS PEDIDOS</a>
                   </>
                 ) : (
                   <>
