@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/static/css/main.1fe954fb.css",
+    "main.js": "/static/js/main.322fef57.js",
+    "static/js/453.117b0875.chunk.js": "/static/js/453.117b0875.chunk.js",
+    "static/media/aboutMe.jpg": "/static/media/aboutMe.76b72dc9f1bf729bcf25.jpg",
+    "static/media/masaje.jpg": "/static/media/masaje.a3bf172d9541aa01ddef.jpg",
+    "index.html": "/index.html",
+    "main.1fe954fb.css.map": "/static/css/main.1fe954fb.css.map",
+    "main.322fef57.js.map": "/static/js/main.322fef57.js.map",
+    "453.117b0875.chunk.js.map": "/static/js/453.117b0875.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.1fe954fb.css",
+    "static/js/main.322fef57.js"
+  ]
+}
