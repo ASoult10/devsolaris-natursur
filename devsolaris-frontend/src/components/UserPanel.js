@@ -2,8 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { getMyAppointments } from '../api/apiUser';
 import { format } from 'date-fns';
 
-// --- INICIO: Lógica de API para borrado (copiada de AdminPanel.js para consistencia) ---
-const API_BASE = "http://localhost:8080"; // Aseguramos que apunta al backend
+// --- INICIO: Importación de imágenes desde src/resources ---
+import deleteIcon from '../resources/delete.png';
+import refreshIcon from '../resources/refresh.png';
+// --- FIN: Importación de imágenes ---
+
+const API_BASE = "http://localhost:8080";
 
 function buildUrl(path) {
   return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;
@@ -20,38 +24,13 @@ async function deleteAppointmentApi(appointmentId, token) {
     const errorText = await res.text().catch(() => 'Error desconocido');
     throw new Error(errorText || `Error ${res.status}`);
   }
-  // Para DELETE, una respuesta exitosa puede no tener cuerpo.
   return { success: true };
-}
-// --- FIN: Lógica de API para borrado ---
-
-
-function useApi(user) {
-  const token = user?.token;
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
-
-  async function parseJsonResponse(res) {
-    const text = await res.text().catch(() => '');
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
-    if (res.status === 401) { const err = new Error('No autorizado (401)'); err.status = 401; throw err; }
-    if (res.status === 403) { const err = new Error('Acceso denegado (403)'); err.status = 403; throw err; }
-    if (!res.ok) { const err = new Error(text || `${res.status} ${res.statusText}`); err.status = res.status; throw err; }
-    if (!ct.includes('application/json')) { const err = new Error('Respuesta no JSON'); err.body = text; throw err; }
-    try { return JSON.parse(text || 'null'); } catch (e) { const err = new Error('JSON inválido'); err.body = text; throw err; }
-  }
-
-  async function get(path) {
-    const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...authHeader } });
-    return parseJsonResponse(res);
-  }
-  return { get };
 }
 
 export function MyAppointments({ user }) {
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
 
-  // Esta función para cargar citas no se toca, ya que funciona.
   async function loadAppointments() {
     setError(null);
     try {
@@ -75,7 +54,6 @@ export function MyAppointments({ user }) {
     return () => window.removeEventListener('appointmentBooked', onBooked);
   }, [user?.userId, user?.token]);
 
-  // --- INICIO: Nueva función para manejar el borrado ---
   async function handleDelete(appointmentId) {
     if (!window.confirm('¿Estás seguro de que quieres cancelar esta cita?')) {
       return;
@@ -83,13 +61,11 @@ export function MyAppointments({ user }) {
     setError(null);
     try {
       await deleteAppointmentApi(appointmentId, user.token);
-      // Tras borrar con éxito, recargamos la lista usando la función que ya funciona.
       await loadAppointments();
     } catch (e) {
       setError('Error al cancelar la cita: ' + e.message);
     }
   }
-  // --- FIN: Nueva función para manejar el borrado ---
 
   return (
     <div id="mis-citas" className="container">
@@ -122,7 +98,7 @@ export function MyAppointments({ user }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ color: '#555', fontWeight: '500' }}>{formatted}</span>
                   <img
-                    src="/delete.png"
+                    src={deleteIcon}
                     alt="Cancelar cita"
                     style={{ width: 20, height: 20, cursor: 'pointer' }}
                     onClick={() => handleDelete(a.id)}
@@ -134,7 +110,7 @@ export function MyAppointments({ user }) {
         )}
 
         <img
-          src="/refresh.png"
+          src={refreshIcon}
           alt="Refrescar"
           onClick={loadAppointments}
           style={{

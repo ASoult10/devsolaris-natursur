@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import '../style.css';
 
+// --- INICIO: Importación de imágenes desde src/resources ---
+import crearIcon from '../resources/crear.png';
+import deleteIcon from '../resources/delete.png';
+import refreshIcon from '../resources/refresh.png';
+// --- FIN: Importación de imágenes ---
+
 const API_BASE = "http://localhost:8080"; // backend
 function buildUrl(path) {
   return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;
@@ -136,7 +142,7 @@ function AdminUsers({ user }) {
 
       <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         <img
-          src="/crear.png"
+          src={crearIcon}
           alt="Crear usuario"
           style={{ width:32, height:32, cursor:'pointer' }}
           onClick={() => setCreating(true)}
@@ -186,7 +192,7 @@ function AdminUsers({ user }) {
                 <p>Rol: {u.role}</p>
               </div>
               <img
-                src="/delete.png"
+                src={deleteIcon}
                 alt="Eliminar"
                 style={{ width: 24, height: 24, cursor: 'pointer' }}
                 onClick={() => handleDelete(u.id)}
@@ -195,10 +201,9 @@ function AdminUsers({ user }) {
           ))
         )}
 
-        {/* Botón refrescar alineado a la derecha */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
           <img
-            src="/refresh.png"
+            src={refreshIcon}
             alt="Refrescar"
             onClick={loadUsers}
             style={{ width: 32, height: 32, cursor: 'pointer' }}
@@ -218,7 +223,6 @@ function AdminAppointments({ user }) {
     setError(null);
     try {
       const data = await api.get('/api/appointments');
-      // Ordena las citas por fecha, de más antigua a más reciente.
       const sorted = data.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
       setAppointments(sorted);
     } catch (e) {
@@ -258,7 +262,7 @@ function AdminAppointments({ user }) {
                 <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                   <span style={{ color:'#555', fontWeight:500 }}>{formatted}</span>
                   <img
-                    src="/delete.png"
+                    src={deleteIcon}
                     alt="Eliminar cita"
                     style={{ width:24, height:24, cursor:'pointer' }}
                     onClick={() => handleDelete(a.id)}
@@ -270,7 +274,7 @@ function AdminAppointments({ user }) {
         )}
 
         <img
-          src="/refresh.png"
+          src={refreshIcon}
           alt="Refrescar"
           onClick={loadAppointments}
           style={{ width:32, height:32, cursor:'pointer', alignSelf:'flex-end', marginTop:4 }}
@@ -280,13 +284,11 @@ function AdminAppointments({ user }) {
   );
 }
 
-
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // La URL donde se está ejecutando la API del chatbot
   const chatbotApiUrl = process.env.REACT_APP_CHATBOT_API_URL || 'http://localhost:8081';
 
   async function loadOrders() {
@@ -309,7 +311,7 @@ function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
-  }, [chatbotApiUrl]); // Se ejecuta una vez al montar el componente
+  }, [chatbotApiUrl]);
 
   return (
     <div>
