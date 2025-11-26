@@ -30,9 +30,6 @@ jobs:
       working-directory: ./devsolaris-backend
       run: mvn clean package -DskipTests
     
-    - name: List target directory
-      run: ls -la ./devsolaris-backend/target/
-    
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       with:
