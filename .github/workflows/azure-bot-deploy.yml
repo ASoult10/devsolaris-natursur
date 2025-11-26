@@ -30,6 +30,15 @@ jobs:
         if [ -f requirements.txt ]; then
           pip install -r requirements.txt
         fi
+    
+    - name: Install dependencies in ZIP
+      working-directory: ./devsolaris-bot
+      run: |
+        python -m venv antenv
+        source antenv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
 
     - name: Create deployment ZIP
       run: |
