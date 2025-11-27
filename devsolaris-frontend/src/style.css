@@ -343,39 +343,106 @@ body {
   font-size: 20px;
 }
 
-/* ———— BUTTON ———— */
-
-.footer-whatsapp-btn {
-  background: #079d86;
-  color: white;
-  padding: 12px 26px;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: background 0.2s ease, transform 0.1s ease;
-  display: inline-block;
-  width: fit-content;
+/* --- NUEVOS ESTILOS PARA ICONOS SOCIALES --- */
+.footer-socials {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  /* Se elimina el margen inferior ya que no hay nada debajo */
 }
 
-.footer-whatsapp-btn:hover {
-  background: #0fb1b9;
+.social-icon-btn {
+  display: block;
+  width: 50px; /* Tamaño grande */
+  height: 50px;
+  border-radius: 50%; /* Redondo */
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.social-icon-btn:hover {
+  transform: scale(1.1); /* Efecto al pasar el ratón */
+}
+
+.social-icon-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- ESTILOS PARA EL BOTÓN FLOTANTE DE TELEGRAM --- */
+.telegram-fab {
+  position: fixed;
+  bottom: 25px;    /* Distancia desde abajo */
+  right: 25px;     /* Distancia desde la derecha */
+  width: 80px;     /* Aumentado de 60px a 70px */
+  height: 80px;    /* Aumentado de 60px a 70px */
+  background-color: var(--teal);
+  border-radius: 50%; /* Para hacerlo circular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease-in-out;
+  z-index: 9999; /* Aumentado para asegurar que esté por encima de todo */
+}
+
+.telegram-fab:hover {
+  transform: scale(1.1); /* Efecto al pasar el ratón */
+}
+
+.telegram-fab img {
+  width: 48px; /* Aumentado de 36px a 42px */
+  height: 48px; /* Aumentado de 36px a 42px */
+}
+/* --- FIN DE ESTILOS --- */
+
+/* ———— BUTTON ———— */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn.primary {
+  background: var(--color-acento);
+  color: #fff;
+  border: none;
+}
+
+.btn.primary:hover {
+  background: #3d8c70;
   transform: translateY(-2px);
 }
 
-/* ———— RESPONSIVE ———— */
-
-@media (max-width: 900px) {
-  .contact-footer {
-    padding: 40px 30px;
-    text-align: left;
-  }
-
-  .footer-right, .footer-left {
-    max-width: 100%;
-  }
+.btn.secondary {
+  background: transparent;
+  color: var(--color-acento);
+  border: 2px solid var(--color-acento);
 }
 
+.btn.secondary:hover {
+  background: var(--color-acento);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+}
+
+.btn.ghost:hover {
+  background: var(--color-borde);
+  color: var(--color-texto);
+  transform: translateY(-2px);
+}
 
 /* ========================
    Services
@@ -425,28 +492,32 @@ body {
   padding: 36px 30px;
 }
 
-.service-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12);
-}
-
+/* Estilos para los nuevos iconos de servicio */
 .service-icon {
-  width: 80px;
-  height: 80px;
-  background: #79c68a;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
+  background-color: #f0f7f7;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38px;
-  color: white;
-  margin: 0 auto 22px;
+  margin-bottom: 16px;
+  margin-left: auto; /* Añadido para centrar */
+  margin-right: auto; /* Añadido para centrar */
+  overflow: hidden; /* Asegura que la imagen no se salga del círculo */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.service-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ajusta la imagen para que cubra el círculo */
 }
 
 .service-card h4 {
-  color: #0a8f97;
-  font-size: 20px;
+  font-size: 1.1rem;
   margin-bottom: 14px;
+  color: #0a8f97;
   font-weight: 700;
 }
 
