@@ -3,6 +3,7 @@ package springboot.devsolaris_backend.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -29,26 +30,48 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                // ✅ CSRF deshabilitado (correcto para APIs REST con JWT)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 🔥 CORS integrado directamente (sin deprecated)
+                // ✅ CORS configurado
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+                // ✅ Autorización de endpoints
                 .authorizeHttpRequests(auth -> auth
+                        // Rutas públicas sin autenticación
                         .requestMatchers("/").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/users").permitAll()
+                        
+                        // Registro de usuarios (público)
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        
+                        // Lectura pública de productos
+                        .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        
+                        // Lectura pública de categorías
+                        .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                        
+                        // Todo lo demás requiere JWT
                         .anyRequest().authenticated()
                 )
 
+                // ✅ Sin sesiones (stateless con JWT)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+                // ✅ Proveedor de autenticación custom
                 .authenticationProvider(authenticationProvider)
+                
+                // ✅ Filtro JWT antes de UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 
+                // ✅ Permitir frames (para H2 console)
                 .headers(headers -> headers
                         .frameOptions(frameOptions -> frameOptions.sameOrigin())
                 );
