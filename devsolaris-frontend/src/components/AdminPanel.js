@@ -6,6 +6,7 @@ import '../style.css';
 import crearIcon from '../resources/crear.png';
 import deleteIcon from '../resources/delete.png';
 import refreshIcon from '../resources/refresh.png';
+import doneIcon from '../resources/comprobado.png';
 // --- FIN: Importación de imágenes ---
 
 const API_BASE = "http://localhost:8080";//"http://devsolaris-app-natursur.azurewebsites.net"
@@ -372,8 +373,8 @@ function AdminOrders({ user }) {
                 <div><strong>Items:</strong> {renderOrderItems(order.items)}</div>
               </div>
               <img
-                src={deleteIcon}
-                alt="Eliminar pedido"
+                src={doneIcon}
+                alt="Terminar pedido"
                 style={{ width: 24, height: 24, cursor: 'pointer', marginTop: '4px' }}
                 onClick={() => handleDelete(order.id)}
               />
