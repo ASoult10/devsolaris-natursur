@@ -10,7 +10,7 @@ IMPORTANTE estar en la carpeta devsolaris-backend/
 -Ejecutar mvn spring-boot:run
 
 # Setup bot:
-IMPORTANTE estar en la carpeta devsolaris-bot/
+IMPORTANTE estar en la carpeta devsolaris-chatbot/
 -Ejecutar pip install -r requirements.txt
 -Abrir el archivo bot.py, y ejecutarlo (hacer click en botón de play arriba a la derecha)
 -Acceder al bot a través de telegram https://t.me/natursur_bot
@@ -19,7 +19,7 @@ IMPORTANTE estar en la carpeta devsolaris-bot/
 # Setup frontend
 IMPORTANTE estar en la carpeta devsolaris-frontend/
 -Ejecutar npm install en terminal
--Ejecutar npm run en terminal
+-Ejecutar npm run start en terminal
 
 ## Cuenta de perfil de admin en el portal
 email: admin@natursur.com
