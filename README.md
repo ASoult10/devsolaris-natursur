@@ -13,9 +13,18 @@ IMPORTANTE estar en la carpeta devsolaris-backend/
 IMPORTANTE estar en la carpeta devsolaris-bot/
 -Ejecutar pip install -r requirements.txt
 -Abrir el archivo bot.py, y ejecutarlo (hacer click en botón de play arriba a la derecha)
+-Acceder al bot a través de telegram https://t.me/natursur_bot
+-Escribir /start en el chat, seguir las instrucciones
 
 # Setup frontend
 IMPORTANTE estar en la carpeta devsolaris-frontend/
 -Ejecutar npm install en terminal
 -Ejecutar npm run en terminal
+
+## Cuenta de perfil de admin en el portal
+email: admin@natursur.com
+password: password123
+
+
+
 
