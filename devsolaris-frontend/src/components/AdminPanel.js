@@ -6,9 +6,10 @@ import '../style.css';
 import crearIcon from '../resources/crear.png';
 import deleteIcon from '../resources/delete.png';
 import refreshIcon from '../resources/refresh.png';
+import doneIcon from '../resources/comprobado.png';
 // --- FIN: Importación de imágenes ---
 
-const API_BASE = "http://localhost:8080"; // backend
+const API_BASE = "http://localhost:8080";//"http://devsolaris-app-natursur.azurewebsites.net"
 function buildUrl(path) {
   return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;
 }
@@ -83,7 +84,7 @@ export default function AdminPanel({ user }) {
         <div className="admin-content">
           {tab === 'users' && <AdminUsers user={user} />}
           {tab === 'appointments' && <AdminAppointments user={user} />}
-          {tab === 'orders' && <AdminOrders />}
+          {tab === 'orders' && <AdminOrders user={user} />}
         </div>
       </div>
     </section>
@@ -284,25 +285,22 @@ function AdminAppointments({ user }) {
   );
 }
 
-function AdminOrders() {
+function AdminOrders({ user }) {
+  const api = useApi(user);
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const chatbotApiUrl = process.env.REACT_APP_CHATBOT_API_URL || 'http://localhost:8081';
 
   async function loadOrders() {
     setError(null);
     setLoading(true);
     try {
-      const response = await fetch(`${chatbotApiUrl}/get-orders`);
-      if (!response.ok) {
-        throw new Error(`No se pudo conectar con el servidor del bot. Estado: ${response.status}`);
-      }
-      const data = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const data = await api.get('/api/orders');
+      // Ordena por ID, de más reciente a más antiguo
+      const sorted = (Array.isArray(data) ? data : []).sort((a, b) => b.id - a.id);
+      setOrders(sorted);
     } catch (e) {
-      setError(`Error al cargar los pedidos: ${e.message}. Asegúrate de que el script del bot se está ejecutando.`);
+      setError(`Error al cargar los pedidos: ${e.message}.`);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -310,31 +308,77 @@ function AdminOrders() {
   }
 
   useEffect(() => {
-    loadOrders();
-  }, [chatbotApiUrl]);
+    if (user?.token) {
+      loadOrders();
+    }
+  }, [user?.token]);
+
+  async function handleDelete(id) {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este pedido?')) return;
+    try {
+      await api.del(`/api/orders/${id}`);
+      await loadOrders(); // Recargar la lista después de eliminar
+    } catch (e) {
+      setError('Error al eliminar el pedido: ' + (e.message || e));
+    }
+  }
+
+  // Función para mostrar los items de forma legible
+  const renderOrderItems = (itemsJson) => {
+    try {
+      const items = JSON.parse(itemsJson);
+      if (!Array.isArray(items)) return itemsJson;
+
+      return (
+        <ul>
+          {items.map((item, index) => (
+            <li key={index}>
+              {item.product || 'N/A'} (x{item.cantidad || 1})
+            </li>
+          ))}
+        </ul>
+      );
+    } catch (e) {
+      return <p>Error al procesar items.</p>;
+    }
+  };
 
   return (
     <div>
-      <h3 className="section-title">Pedidos Recibidos del Bot</h3>
       {error && <div className="auth-error">{error}</div>}
+      
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button className="btn" onClick={loadOrders} disabled={loading}>
-          {loading ? 'Cargando...' : 'Refrescar'}
-        </button>
+        <img
+          src={refreshIcon}
+          alt="Refrescar"
+          onClick={loadOrders}
+          style={{ width: 32, height: 32, cursor: 'pointer' }}
+          disabled={loading}
+        />
       </div>
 
-      {orders.length === 0 && !loading && (
-        <p>No hay pedidos registrados desde el bot o el servicio no está disponible.</p>
+      {loading && <p>Cargando pedidos...</p>}
+
+      {!loading && orders.length === 0 && (
+        <p>No hay pedidos registrados en la base de datos.</p>
       )}
 
       <div className="testimonials-list">
         {orders.map(order => (
           <div key={order.id} className="testimonial">
-            <p><strong>Producto:</strong> {order.productName} (x{order.quantity})</p>
-            <p><strong>Usuario Telegram:</strong> {order.telegramUserName} (ID: {order.telegramUserId})</p>
-            <p><strong>Precio:</strong> {order.price}</p>
-            <p><strong>Fecha:</strong> {new Date(order.createdAt).toLocaleString()}</p>
-            <p><strong>Estado:</strong> <span className={`status-${order.status?.toLowerCase()}`}>{order.status}</span></p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p><strong>Cliente:</strong> {order.fullName || order.username} (ID: {order.userId})</p>
+                <p><strong>Fecha:</strong> {new Date(order.timestamp).toLocaleString()}</p>
+                <div><strong>Items:</strong> {renderOrderItems(order.items)}</div>
+              </div>
+              <img
+                src={doneIcon}
+                alt="Terminar pedido"
+                style={{ width: 24, height: 24, cursor: 'pointer', marginTop: '4px' }}
+                onClick={() => handleDelete(order.id)}
+              />
+            </div>
           </div>
         ))}
       </div>

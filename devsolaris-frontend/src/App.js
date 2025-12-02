@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import Banner from './components/Banner'; // 1. Importamos el nuevo componente
+import Banner from './components/Banner';
 import AboutMe from './components/AboutMe';
 import Services from './components/Services';
 import Booking from './components/Booking';
@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
 import { MyAppointments, MyOrders } from './components/UserPanel';
 import './style.css';
+import botIcon from './resources/bot.png'; 
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
@@ -35,7 +36,7 @@ export default function App() {
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <div className="app">
+    <div className="App">
       <Header 
         onOpenAuth={() => setAuthOpen(true)} 
         user={user} 
@@ -44,7 +45,6 @@ export default function App() {
 
       <main>
 
-        {/* 2. Lógica de renderizado condicional para Banner o Hero */}
         {user ? (
           <Banner user={user} />
         ) : (
@@ -75,6 +75,9 @@ export default function App() {
               {user ? <MyAppointments user={user} /> : <AboutMe />}
             </section>
 
+            {/* Mostrar servicios solo si el usuario no está logueado */}
+            {!user && <Services />}
+
             <section id="booking" className="section booking-section">
               <Booking 
                 user={user} 
@@ -95,6 +98,19 @@ export default function App() {
         onClose={() => setAuthOpen(false)}
         onLogin={handleLogin}
       />
+
+      {/* Botón flotante de Telegram, se muestra solo si el usuario está logueado */}
+      {user && !isAdmin && (
+        <a 
+          href="https://t.me/natursur_bot"
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="telegram-fab"
+          title="Contactar por Telegram"
+        >
+          <img src={botIcon} alt="Chat de Telegram" />
+        </a>
+      )}
     </div>
   );
 }
