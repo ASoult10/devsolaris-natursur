@@ -1,0 +1,49 @@
+name: Trigger auto deployment for devsolaris-chatbot-natursur
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ release ]
+    paths:
+    - '**'
+    - '.github/workflows/devsolaris-chatbot-natursur-AutoDeployTrigger-7008ee96-6f04-4a79-af2f-984709b8bfac.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.DEVSOLARISCHATBOTNATURSUR_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.DEVSOLARISCHATBOTNATURSUR_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.DEVSOLARISCHATBOTNATURSUR_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/devsolaris-chatbot
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: devsolarisregistry.azurecr.io
+          registryUsername: ${{ secrets.DEVSOLARISCHATBOTNATURSUR_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.DEVSOLARISCHATBOTNATURSUR_REGISTRY_PASSWORD }}
+          containerAppName: devsolaris-chatbot-natursur
+          resourceGroup: DevsolarisBackend
+          imageToBuild: devsolarisregistry.azurecr.io/devsolaris-chatbot-natursur:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
