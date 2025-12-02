@@ -46,9 +46,7 @@ def setup_driver(headless=True):
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("user-agent=Mozilla/5.0 (compatible; MiScraper/1.0; +https://tusitio.example)")
     from selenium.webdriver.chrome.service import Service
-    from webdriver_manager.chrome import ChromeDriverManager
-
-    service = Service(ChromeDriverManager().install())
+    service = Service("/usr/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=opts)
     return driver
 
