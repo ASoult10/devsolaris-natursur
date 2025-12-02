@@ -14,7 +14,7 @@ from telegram.ext import (
 # === CONFIGURACIÓN ===
 TOKEN = "8284120713:AAH1gMBxbnk-8NKq3kBMxUY-pnoDaYM93LU" 
 ADMIN_CHAT_ID = 8370275487
-BACKEND_API_URL = "http://localhost:8080/api/orders"  # or your deployed backend
+BACKEND_API_URL = "https://devsolaris-app-natursur.azurewebsites.net/api/orders"
 TOKEN_ADMIN = "I-AM-BOT"
 
 carritos = {}  # <--- CART FOR MULTIPLE ITEMS
@@ -47,8 +47,8 @@ def guardar_orden(data):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 ¡Bienvenido! Usa:\n"
-        "🛍️ /productos - Ver catálogo Herbalife\n"
-        "🧾 /carrito - Ver pedido actual"
+        "🛍️ /productos - Ver el catálogo Herbalife\n"
+        "🧾 /carrito - Ver el pedido actual"
     )
 
 
