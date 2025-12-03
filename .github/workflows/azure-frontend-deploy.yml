@@ -62,10 +62,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EF3593322EAB41E4B385300844F519AA }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_0B23A60E22194E1482B26DCDCDFB19CF }}
 
-      - name: Clean Azure deployment
-        run: |
-          az webapp deployment source delete --name devsolaris-webpage-natursur --resource-group DevsolarisBackend --slot production || true
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
