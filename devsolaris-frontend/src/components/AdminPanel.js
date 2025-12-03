@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import '../style.css';
 
-// --- INICIO: Importación de imágenes desde src/resources ---
+// -- INICIO: Importación de imágenes desde src/resources --
 import crearIcon from '../resources/crear.png';
 import deleteIcon from '../resources/delete.png';
 import refreshIcon from '../resources/refresh.png';
 import doneIcon from '../resources/comprobado.png';
-// --- FIN: Importación de imágenes ---
+// -- FIN: Importación de imágenes --
 
 const API_BASE = "https://devsolaris-app-natursur.azurewebsites.net";
 function buildUrl(path) {
