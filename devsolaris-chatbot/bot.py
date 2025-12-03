@@ -47,8 +47,8 @@ def guardar_orden(data):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 ¡Bienvenido! Usa:\n"
-        "🛍️ /productos - Ver catálogo Herbalife\n"
-        "🧾 /carrito - Ver pedido actual"
+        "🛍️ /productos - Ver el catálogo Herbalife\n"
+        "🧾 /carrito - Ver el pedido actual"
     )
 
 
