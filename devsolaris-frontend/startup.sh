@@ -1,2 +1,2 @@
 #!/bin/sh
-npx serve -s build -l 8080
+npx serve -s build -l ${PORT:-8080}
