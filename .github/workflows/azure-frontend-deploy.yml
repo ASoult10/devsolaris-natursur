@@ -32,7 +32,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: react-build
-          path: devsolaris-frontend/build
+          path: |
+            devsolaris-frontend/build
+            devsolaris-frontend/package.json
+            devsolaris-frontend/startup.sh
 
   deploy:
     runs-on: ubuntu-latest
@@ -60,3 +63,4 @@ jobs:
         with:
           app-name: 'devsolaris-webpage-natursur'
           package: './react-build'
+          startup-command: 'bash startup.sh'
