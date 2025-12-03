@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - release
+    paths:
+      - 'devsolaris-frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -56,4 +58,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'devsolaris-webpage-natursur'
-          package: .
+          package: devsolaris-frontend/build

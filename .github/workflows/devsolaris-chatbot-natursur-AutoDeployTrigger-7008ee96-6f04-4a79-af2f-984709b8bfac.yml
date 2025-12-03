@@ -7,8 +7,7 @@ on:
     branches: 
       [ release ]
     paths:
-    - '**'
-    - '.github/workflows/devsolaris-chatbot-natursur-AutoDeployTrigger-7008ee96-6f04-4a79-af2f-984709b8bfac.yml'
+      - 'devsolaris-chatbot/**'
 
   # Allow manual trigger 
   workflow_dispatch:      
