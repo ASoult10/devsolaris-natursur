@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";//"http://devsolaris-app-natursur.azurewebsites.net"
+const API_BASE = "https://devsolaris-app-natursur.azurewebsites.net"
 
 function buildUrl(path) {
   return API_BASE ? API_BASE.replace(/\/$/, '') + path : path;

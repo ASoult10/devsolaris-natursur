@@ -11,7 +11,7 @@ export default function AuthModal({ open, onClose, onLogin }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://localhost:8080/api/auth";
+  const API_URL = "https://devsolaris-app-natursur.azurewebsites.net/api/auth";
 
   // Limpia los campos al abrir el modal
   useEffect(() => {
@@ -35,6 +35,8 @@ export default function AuthModal({ open, onClose, onLogin }) {
       const endpoint = mode === "login" 
         ? `${API_URL}/login`
         : `${API_URL}/register`;
+
+        console.log("Submitting to:", endpoint);
 
       const body =
         mode === "login"
