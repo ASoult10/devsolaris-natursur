@@ -26,6 +26,8 @@ jobs:
         npm install
 
     - name: Build the app
+      env:
+        CI: false
       run: |
         cd devsolaris-frontend
         npm run build
