@@ -1,0 +1,61 @@
+name: Deploy Frontend to Azure
+
+on:
+  push:
+    branches:
+      - release
+    paths:
+      - 'devsolaris-frontend/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+
+      - name: Install and build React app
+        working-directory: devsolaris-frontend
+        run: |
+          npm install
+          CI=false npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-build
+          path: devsolaris-frontend/build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: react-build
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_447E3EF0CF4A401FA225E8D1A2EA659B }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EF3593322EAB41E4B385300844F519AA }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_0B23A60E22194E1482B26DCDCDFB19CF }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'devsolaris-webpage-natursur'
+          package: './react-build'
